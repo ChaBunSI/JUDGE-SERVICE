@@ -12,8 +12,7 @@
 
 int main() {
     // 채점 큐에서 꺼낸 제출 정보
-    user_submission cur_sub(69170801, 30461, CPP, "pridom1118", R"(
-        #include <bits/stdc++.h>
+    user_submission cur_sub(69170801, 30461, CPP, "pridom1118", R"(#include <bits/stdc++.h>
 #define fastio cin.tie(0)->sync_with_stdio(0)
 
 using namespace std;
@@ -53,6 +52,7 @@ int main() {
         std::cerr << "Failed to make the file\n";
     }
 
+    // 채점하기
     
 
     return 0;

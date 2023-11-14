@@ -74,14 +74,17 @@ struct user_submission {
 
     error_code compile_code(lang_config& cur_config) {
         std::string compile_cmd;
-        std::string mkfile_cmd = "echo " + code + " | tee Main" + cur_config.ext;
-        int mkfile_res = system(mkfile_cmd.c_str());
+        std::ofstream cur_code;
+        cur_code.open("Main" + cur_config.ext, std::ios::out | std::ios::trunc);
 
-        // 파일 만들기 실패
-        if(mkfile_res != 0) {
+        // 파일 만들기
+        if(!cur_code.is_open()) {
             std::cerr << "Failed to make the file\n";
-            return FILE_CREATE_ERROR;
+            return FILE_CREATE_ERROR; 
         }
+
+        cur_code << code;
+        cur_code.close();
 
         // 컴파일 에러 -> 컴파일 에러 시 user_sumbission
         int compile_res = system(cur_config.compile_cmd.c_str());
