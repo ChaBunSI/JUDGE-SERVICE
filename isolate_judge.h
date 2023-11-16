@@ -1,7 +1,20 @@
 #include <map>
+ 
+/* Judge Result:
+ * NJ: Not Judged
+ * AC: Accepted
+ * WA: Wrong Answer
+ * CE: Compile Error
+ * RE: Runtime Error
+ * TLE: Time Limit Exceeded
+ * MLE: Memory Limit Exceeded
+ * OLE: Output Limit Exceeded (출력 초과)
+ * PE: Presentation Error     (출력 형식 오류)
+ * SE: Sandbox Execution Error 
+ */
 
 enum judge_result {
-    NJ, AC, WA, CE, RE, TLE, MLE, OLE, PE //NJ: Not Judged
+    NJ, AC, WA, CE, RE, TLE, MLE, OLE, PE, SE
 };
 
 enum error_code {
@@ -35,11 +48,11 @@ struct lang_config {
 // 각 테스트 케이스별로 시간, 메모리, 결과 등을 저장하는 구조체
 // 이 구조체를 기반으로 채점 결과를 알릴 것이다.
 struct judge_info {
-    size_t max_wtime, max_mem, code_bytes; // in ms, MB, bytes
+    size_t wtime, mem, code_bytes; // in ms, MB, bytes
+    size_t tc_id;
     judge_result res;
     std::string err_msg; // 에러 메세지 출력용
-
-    judge_info() { max_wtime = max_mem = code_bytes = 0; res = NJ; err_msg = ""; }
+    judge_info() { wtime = mem = code_bytes = 0; res = NJ; err_msg = ""; }
 };
 
 // 각 언어별 컴파일 옵션, 실행 옵션, 시간 제한, 메모리 제한 등을 저장하는 map
@@ -54,8 +67,8 @@ std::map<language, lang_config> lang_configs = {
 // 채점 큐에서 꺼낸 제출 정보
 // 이때 코드 자체가 긴 문자열로 되어있기 때문에, 문자열을 기반으로 파일을 만드는 작업 필요
 // 사용하는 언어를 기반으로 파일을 만들고 컴파일할 것이다.
-// echo code | tee Main.${ext}라는 명령어를 사용해서 파일을 만들 것이다.
-// 이때 ext는 위 lang_configs에서 정의한 ext를 사용할 것이다.
+// 파일 입출력을 사용해 주어진 코드 (문자열)을 파일로 작성할 것이다.
+// 이때 확장자 (ext)는 위 lang_configs에서 정의한 확장자를 사용할 것이다.
 struct user_submission {
     size_t sumbit_id, problem_id;
     language lang;
