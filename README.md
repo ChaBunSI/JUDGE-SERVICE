@@ -27,8 +27,40 @@
 이때 에러 메세지는 컴파일 에러, 런타임 에러일 때만 존재합니다.  
 다른 경우엔 null로 보냅니다.
 
+### 주고 받는 데이터  
+- judge_result: 정수의 형태로 주어집니다.
+```cpp
+enum judge_result {
+    NJ, AC, WA, CE, RE, TLE, MLE, OLE, SE
+};
+```
+|채점 결과| 값 | 설명|
+|---|---|---|
+|NJ|0|Not Judged, 채점되지 않음. |
+|AC|1|Accepted, 정답. 출력 결과가 일치함|
+|WA|2|Wrong Answer, 오답. 출력 결과가 일치하지 않음|
+|CE|3|Compile Error, 컴파일 에러|
+|RE|4|Runtime Error, 런타임 에러|
+|TLE|5|Time Limit Exceeded, 시간 초과|
+|MLE|6|Memory Limit Exceeded, 메모리 초과|
+|OLE|7|Output Limit Exceeded, 출력 초과|
+|SE|8|Sandbox Error, 샌드박스 에러|
+
+- language_code: 정수의 형태로 주어집니다.
+```cpp
+enum language_code {
+    C, JAVA, PYTHON, CPP
+};
+```
+|언어| 값 |
+|---|---|
+|C|0|
+|CPP|1|
+|Java|2|
+|Python|3|
+
 ## 예상 구조도  
-![예상 구조도](./예상%20아키텍쳐.png)
+![예상 구조도](./images/architecture.png)
 추후 그림은 언제든지 수정될 수 있습니다.  
 
 ## TODO
