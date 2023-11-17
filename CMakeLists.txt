@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.0.0)
+project(JUDGE-SERVICE)
+
+set(SERVICE_COMPONENTS core sqs sns)
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
+
+add_executable(${PROJECT_NAME} isolate_judge.cc isolate_judge.h judge_sqs.h judge_task.h judge_notify.h)
+
+target_link_libraries(${PROJECT_NAME} ${AWSSDK_LINK_LIBRARIES})
+
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+include(CPack)
