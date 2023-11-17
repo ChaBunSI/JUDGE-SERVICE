@@ -1,4 +1,3 @@
-#include <iostream>
 #include <string>
 #include <filesystem>
 #include <fstream>
@@ -8,75 +7,54 @@
 #include <iomanip>
 #include <chrono>
 
-#include "isolate_judge.h"
+// AWS 관련 라이브러리
+#include "judge_sqs.h"
 
+// 채점 관련 라이브러리
+#include "isolate_judge.h"
+#include "judge_task.h"
+
+// 워커 (채점 프로세스)의 id 및 샌드박스 경로
 static int wid=-1;
 std::string isolate_dir;
 
-bool strip_and_compare(std::string& str1, std::string& str2) {
-    // Strip the string
-    str1.erase(std::remove(str1.begin(), str1.end(), ' '), str1.end());
-    str1.erase(std::remove(str1.begin(), str1.end(), '\n'), str1.end());
-    str1.erase(std::remove(str1.begin(), str1.end(), '\r'), str1.end());
-    str2.erase(std::remove(str2.begin(), str2.end(), ' '), str2.end());
-    str2.erase(std::remove(str2.begin(), str2.end(), '\n'), str2.end());
-    str2.erase(std::remove(str2.begin(), str2.end(), '\r'), str2.end());
-    return str1 == str2;
-}
-
-void print_statistics(std::vector<judge_info>& judge_res) {
-    int len = judge_res.size();
-    int ac_cnt = 0, not_ac_cnt = 0;
-
-    for(auto& e: judge_res) {
-        if(e.res == AC) ac_cnt++;
-        else not_ac_cnt++;
-    }
-
-    std::cout << "30461 Statistics: \n";
-    std::cout << "AC: " << ac_cnt << "\n";
-    std::cout << "WA: " << not_ac_cnt << "\n";
-}
-
 int main(int argc, char *argv[]) {
-    if(argc < 2) { std::cerr << "no worker ids are given\n"; return -1; }
-    else if(argc == 2) {
-        wid = atoi(argv[1]);
-        isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
-        system(std::string("isolate --box-id=" + std::to_string(wid) + " --init").c_str());
-    }
+    wid = 0;
+    isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
+    //system(std::string("isolate --box-id=" + std::to_string(wid) + " --init").c_str());
+
+    // if(argc < 2) { std::cerr << "no worker ids are given\n"; return -1; }
+    // else if(argc == 2) {
+    //     wid = atoi(argv[1]);
+    //     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
+    //     system(std::string("isolate --box-id=" + std::to_string(wid) + " --init").c_str());
+    // }
 
     // 채점 큐에서 꺼낸 제출 정보
+    user_submission cur_sub;
+    bool received_sub = false;
 
-    user_submission cur_sub(69170801, 30461, CPP, "pridom1118", R"(#include <bits/stdc++.h>
-#define fastio cin.tie(0)->sync_with_stdio(0)
+    Aws::SDKOptions options;
+    Aws::InitAPI(options);
+    {
+        Aws::String queueName = QUEUE_NAME;
+        Aws::String queueUrl = QUEUE_URL;
+        Aws::Client::ClientConfiguration clientConfig;
+        clientConfig.region = Aws::Region::AP_NORTHEAST_2;
 
-using namespace std;
-
-int N, M, Q, W, P, ocean[2005][2005];
-
-int main() {
-    fastio;
-    cin >> N >> M >> Q;
-
-    for(int i = 0; i < N; i++) {
-        for(int j = 0; j < M; j++) {
-            cin >> ocean[i][j];
-            if(i > 0) ocean[i][j] += ocean[i-1][j];
-            if(i && j) {
-                ocean[i][j] += ocean[i-1][j-1];
-                if(i > 1) ocean[i][j] -= ocean[i-2][j-1];
-            }
-        }
+        // 채점 큐에서 제출 정보 꺼내기
+        received_sub = receiveMessage(cur_sub, clientConfig);
     }
 
-    while(Q--) {
-        cin >> W >> P;
-        cout << ocean[W-1][P-1] << "\n";
+    if(!received_sub) {
+        Aws::ShutdownAPI(options);
+        std::cerr << "Failed to receive message\n";
+        return -1;
+    } else {
+        Aws::ShutdownAPI(options);
+        std::cout << "Received the message successfully\n";
+        return 0;
     }
-    return 0;
-}
-    )", 2, 1024);
 
     auto cur_config = lang_configs[cur_sub.lang];
     judge_info cur_judge_info;
@@ -92,6 +70,7 @@ int main() {
     std::string cur_tc_dir = "testcases/" + std::to_string(cur_sub.problem_id) + "/";
     auto cur_tc_dir_iter = std::filesystem::directory_iterator(cur_tc_dir);
 
+    // 테스트 케이스 개수 세기
     int cnt_tc = std::count_if(
         begin(cur_tc_dir_iter), end(cur_tc_dir_iter),
         [](const std::filesystem::directory_entry& e) {
@@ -108,6 +87,7 @@ int main() {
         return -1;
     }
 
+    // 샌드박스 내에서 테스트케이스 별로 제출된 코드 실행 후 결과 저장
     for(int i = 1; i <= cnt_tc; i++) {
         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
         std::string cur_cmd = "isolate --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
@@ -139,5 +119,7 @@ int main() {
     }
     print_statistics(judge_res);
     system(std::string("isolate --box-id=" + std::to_string(wid) + " --cleanup").c_str());
+
+    Aws::ShutdownAPI(options);
     return 0;
 }

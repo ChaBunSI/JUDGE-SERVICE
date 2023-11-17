@@ -1,3 +1,6 @@
+#ifndef ISOLATE_JUDGE_H
+#define ISOLATE_JUDGE_H
+
 #include <map>
  
 /* Judge Result:
@@ -9,14 +12,14 @@
  * TLE: Time Limit Exceeded
  * MLE: Memory Limit Exceeded
  * OLE: Output Limit Exceeded (출력 초과)
- * PE: Presentation Error     (출력 형식 오류)
  * SE: Sandbox Execution Error 
  */
 
 enum judge_result {
-    NJ, AC, WA, CE, RE, TLE, MLE, OLE, PE, SE
+    NJ, AC, WA, CE, RE, TLE, MLE, OLE, SE
 };
 
+// 채점 프로세스 내부에서만 사용되는 에러 코드입니다.
 enum error_code {
     NO_ERROR, COMPILE_ERROR, RUNTIME_ERROR, TIME_LIMIT_EXCEEDED, FILE_CREATE_ERROR
 };
@@ -108,3 +111,34 @@ struct user_submission {
         return NO_ERROR;
     }
 };
+
+// 두 .out 파일을 비교하는 함수
+// 테스트 케이스의 출력 파일과, 사용자의 출력 파일을 비교한다.
+bool strip_and_compare(std::string& str1, std::string& str2) {
+    // Strip the string
+    str1.erase(std::remove(str1.begin(), str1.end(), ' '), str1.end());
+    str1.erase(std::remove(str1.begin(), str1.end(), '\n'), str1.end());
+    str1.erase(std::remove(str1.begin(), str1.end(), '\r'), str1.end());
+    str2.erase(std::remove(str2.begin(), str2.end(), ' '), str2.end());
+    str2.erase(std::remove(str2.begin(), str2.end(), '\n'), str2.end());
+    str2.erase(std::remove(str2.begin(), str2.end(), '\r'), str2.end());
+    return str1 == str2;
+}
+
+// 채점 결과를 출력하는 함수
+// TODO: 채점 중 가장 긴 실행 시간과 가장 큰 메모리 사용량을 출력해야 한다.
+void print_statistics(std::vector<judge_info>& judge_res) {
+    int len = judge_res.size();
+    int ac_cnt = 0, not_ac_cnt = 0;
+
+    for(auto& e: judge_res) {
+        if(e.res == AC) ac_cnt++;
+        else not_ac_cnt++;
+    }
+
+    std::cout << "30461 Statistics: \n";
+    std::cout << "AC: " << ac_cnt << "\n";
+    std::cout << "WA: " << not_ac_cnt << "\n";
+}
+
+#endif
