@@ -6,6 +6,8 @@
 # 테케 및 설정 무시하기
 testcases/
 .vscode/
+build/
 
 # 중요 파일 무시하기
 judge_sqs.h
+ssh_pem/

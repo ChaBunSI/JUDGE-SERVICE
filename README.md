@@ -58,6 +58,7 @@ enum language_code {
 |CPP|1|
 |Java|2|
 |Python|3|
+|DEFAULT|9|
 
 ## 예상 구조도  
 ![예상 구조도](./images/architecture.png)
