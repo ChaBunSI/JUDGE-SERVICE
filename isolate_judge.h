@@ -99,9 +99,9 @@ struct user_submission {
     size_t sumbit_id, problem_id, user_id;
     language lang;
     std::string code;
-    size_t max_wtime, max_mem, code_bytes;
+    size_t max_wtime, max_mem, code_bytes; // ms, MB, bytes
 
-    user_submission(size_t si, size_t pi, size_t ui, language l, std::string c, size_t mw, size_t mm): sumbit_id(si), problem_id(pi), lang(l), user_id(ui), code(c), max_wtime(mw * 1000), max_mem(mm) { code_bytes = code.size(); }
+    user_submission(size_t si, size_t pi, size_t ui, language l, std::string c, size_t mw, size_t mm): sumbit_id(si), problem_id(pi), lang(l), user_id(ui), code(c), max_wtime(mw), max_mem(mm) { code_bytes = code.size(); }
     user_submission() {
         sumbit_id = 0U;
         problem_id = 0U;
@@ -168,7 +168,7 @@ bool remove_rawnline_compare(std::string out, std::string usr_out) {
 
 // 채점 결과를 출력하는 함수
 // TODO: 채점 중 가장 긴 실행 시간과 가장 큰 메모리 사용량을 출력해야 한다.
-void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_sub) {
+void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_sub, judge_info& cur_judge_info) {
     int len = judge_res.size();
     int ac_cnt = 0, not_ac_cnt = 0;
 
@@ -180,6 +180,9 @@ void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_s
     std::cout << std::to_string(cur_sub.problem_id) + " Statistics: \n";
     std::cout << "AC: " << ac_cnt << "\n";
     std::cout << "WA: " << not_ac_cnt << "\n";
+
+    if(judge_res.size() == ac_cnt) cur_judge_info.res = AC;
+    else cur_judge_info.res = WA;
 }
 
 #endif

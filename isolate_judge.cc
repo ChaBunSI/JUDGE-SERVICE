@@ -129,12 +129,12 @@ int main(int argc, char *argv[])
                     usr_out.close();
                     tc_out.close();
                 }
-                print_statistics(judge_res, cur_sub);
-                //deleteMessage(messageReceiptHandle, clientConfig);
+                print_statistics(judge_res, cur_sub, cur_judge_info);
+                deleteMessage(messageReceiptHandle, clientConfig);
                 system(std::string("isolate --box-id=" + std::to_string(wid) + " --cleanup").c_str());
 
                 // TODO:SNS로 채점 결과 보내기
-                publishToTopic("Judge Done", clientConfig);
+                publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
             }
         }
     }
