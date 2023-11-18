@@ -43,101 +43,122 @@ int main(int argc, char *argv[])
         // 채점 큐에서 제출 정보 꺼내기
         Aws::Client::ClientConfiguration clientConfig;
         clientConfig.region = Aws::Region::AP_NORTHEAST_2;
-        Aws::String messageReceiptHandle;
-        received_sub = receiveMessage(cur_sub, clientConfig, messageReceiptHandle);
-
-        if (!received_sub)
+        while (1)
         {
-            std::cerr << "Failed to receive the message\n";
-        }
-        else
-        {
-            std::cout << "Received the message successfully\n";
-            
-            auto cur_config = lang_configs[cur_sub.lang];
-            judge_info cur_judge_info;
-            int compile_res = cur_sub.compile_code(cur_config);
-
-            if (compile_res == COMPILE_ERROR)
+            Aws::String messageReceiptHandle;
+            received_sub = receiveMessage(cur_sub, clientConfig, messageReceiptHandle);
+            if (!received_sub)
             {
-                cur_judge_info.res = CE;
-            }
-            else if (compile_res == FILE_CREATE_ERROR)
-            {
-                std::cerr << "Failed to make the file\n";
+                std::cerr << "Failed to receive the message\n";
+                sleep(10);
             }
             else
             {
-                std::string current_path = std::filesystem::current_path(); std::cout << current_path << "\n";
-                // 채점하기
-                std::string cur_tc_dir = "../testcases/" + std::to_string(cur_sub.problem_id) + "/";
-                auto cur_tc_dir_iter = std::filesystem::directory_iterator(cur_tc_dir);
+                std::cout << "Received the message successfully\n";
 
-                // 테스트 케이스 개수 세기
-                int cnt_tc = std::count_if(
-                                 begin(cur_tc_dir_iter), end(cur_tc_dir_iter),
-                                 [](const std::filesystem::directory_entry &e)
-                                 {
-                                     return e.is_regular_file();
-                                 }) /
-                             2;
+                auto cur_config = lang_configs[cur_sub.lang];
+                judge_info cur_judge_info; cur_judge_info.res = NJ;
+                int compile_res = cur_sub.compile_code(cur_config);
+                std::vector<judge_info> judge_res;
 
-                std::vector<judge_info> judge_res(cnt_tc);
-
-                // 문제의 테스트 케이스들과 실행 코드를 샌드박스 내로 복사
-                std::string cp_tc = "cp Main " + cur_tc_dir + "/* " + isolate_dir;
-                if (system(cp_tc.c_str()) < 0)
+                if (compile_res == COMPILE_ERROR)
                 {
-                    std::cerr << "Failed to copy the files\n";
-                    return -1;
+                    cur_judge_info.res = CE;
+
                 }
-
-                // 샌드박스 내에서 테스트케이스 별로 제출된 코드 실행 후 결과 저장
-                for (int i = 1; i <= cnt_tc; i++)
+                else if (compile_res == FILE_CREATE_ERROR)
                 {
-                    std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
-                    std::string cur_cmd = "isolate --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
-                    judge_info &cur_tc_judge_info = judge_res[i-1];
-
-                    int sandbox_exec_res = system(cur_cmd.c_str());
-
-                    cur_tc_judge_info.tc_id = i;
-
-                    if (sandbox_exec_res != 0)
+                    std::cerr << "Failed to make the file\n";
+                    cur_judge_info.res = NJ;
+                }
+                else
+                {
+                    // 해당 문제 or 문제의 테케 존재 여부 확인
+                    if (!std::filesystem::exists("../testcases/" + std::to_string(cur_sub.problem_id)))
                     {
-                        std::cerr << "Sandbox Execution Error\n";
-                        cur_judge_info.res = SE;
-                        cur_tc_judge_info.res = SE;
-                        break;
+                        std::cerr << std::to_string(cur_sub.problem_id) << " does not exist\n";
+                        cur_judge_info.res = NJ;
+                        cur_judge_info.err_msg = std::to_string(cur_sub.problem_id) + " does not exist";
                     }
+                    else
+                    {
+                        std::string current_path = std::filesystem::current_path();
+                        std::cout << current_path << "\n";
+                        // 채점하기
+                        std::string cur_tc_dir = "../testcases/" + std::to_string(cur_sub.problem_id) + "/";
+                        auto cur_tc_dir_iter = std::filesystem::directory_iterator(cur_tc_dir);
 
-                    // TODO:샌드박스에서 결과 가져오기 (에러 등)
-                    std::ifstream usr_out(isolate_dir + "/usr_" + tc_num + ".out");
-                    std::ifstream tc_out(cur_tc_dir + "/" + tc_num + ".out");
-                    std::string tc_out_str, usr_out_str;
+                        // 테스트 케이스 개수 세기
+                        int cnt_tc = std::count_if(
+                                         begin(cur_tc_dir_iter), end(cur_tc_dir_iter),
+                                         [](const std::filesystem::directory_entry &e)
+                                         {
+                                             return e.is_regular_file();
+                                         }) /
+                                     2;
 
-                    while (std::getline(tc_out, tc_out_str) && std::getline(usr_out, usr_out_str))
-                    { 
-                        if (!strip_and_compare(tc_out_str, usr_out_str))
+                        judge_res.resize(cnt_tc);
+
+                        // 문제의 테스트 케이스들과 실행 코드를 샌드박스 내로 복사
+                        std::string cp_tc = "cp Main " + cur_tc_dir + "/* " + isolate_dir;
+                        if (system(cp_tc.c_str()) < 0)
                         {
-                            cur_tc_judge_info.res = WA;
-                            break;
+                            std::cerr << "Failed to copy the files\n";
+                            return -1;
                         }
-                        else
-                            cur_tc_judge_info.res = AC;
+
+                        // 샌드박스 내에서 테스트케이스 별로 제출된 코드 실행 후 결과 저장
+                        for (int i = 1; i <= cnt_tc; i++)
+                        {
+                            std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
+                            std::string cur_cmd = "isolate --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
+                            judge_info &cur_tc_judge_info = judge_res[i - 1];
+
+                            int sandbox_exec_res = system(cur_cmd.c_str());
+
+                            cur_tc_judge_info.tc_id = i;
+
+                            if (sandbox_exec_res != 0)
+                            {
+                                std::cerr << "Sandbox Execution Error\n";
+                                cur_judge_info.res = SE;
+                                cur_tc_judge_info.res = SE;
+                                break;
+                            }
+
+                            // TODO:샌드박스에서 결과 가져오기 (에러 등)
+                            std::ifstream usr_out(isolate_dir + "/usr_" + tc_num + ".out");
+                            std::ifstream tc_out(cur_tc_dir + "/" + tc_num + ".out");
+                            std::string tc_out_str, usr_out_str;
+
+                            while (std::getline(tc_out, tc_out_str) && std::getline(usr_out, usr_out_str))
+                            {
+                                if (!strip_and_compare(tc_out_str, usr_out_str))
+                                {
+                                    cur_tc_judge_info.res = WA;
+                                    break;
+                                }
+                                else
+                                    cur_tc_judge_info.res = AC;
+                            }
+
+                            if(std::getline(usr_out, usr_out_str)) {
+                                cur_tc_judge_info.res = OLE;
+                            }
+                            usr_out.close();
+                            tc_out.close();
+                        }
                     }
-                    usr_out.close();
-                    tc_out.close();
                 }
                 print_statistics(judge_res, cur_sub, cur_judge_info);
                 deleteMessage(messageReceiptHandle, clientConfig);
-                system(std::string("isolate --box-id=" + std::to_string(wid) + " --cleanup").c_str());
-
+                system("rm -rf /var/local/lib/isolate/0/box/*");
                 // TODO:SNS로 채점 결과 보내기
                 publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
             }
         }
     }
     Aws::ShutdownAPI(options);
+    system(std::string("isolate --box-id=" + std::to_string(wid) + " --cleanup").c_str());
     return 0;
 }

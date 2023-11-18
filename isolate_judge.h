@@ -181,8 +181,10 @@ void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_s
     std::cout << "AC: " << ac_cnt << "\n";
     std::cout << "WA: " << not_ac_cnt << "\n";
 
-    if(judge_res.size() == ac_cnt) cur_judge_info.res = AC;
-    else cur_judge_info.res = WA;
+    if(cur_judge_info.res == NJ) {
+        if(ac_cnt == judge_res.size()) cur_judge_info.res = AC;
+        else cur_judge_info.res = WA;
+    }
 }
 
 #endif
