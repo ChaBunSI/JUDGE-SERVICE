@@ -27,7 +27,19 @@
 이때 에러 메세지는 컴파일 에러, 런타임 에러일 때만 존재합니다.  
 다른 경우엔 null로 보냅니다.
 
-### 주고 받는 데이터  
+### SNS로 보내는 데이터 예시
+```json
+{
+    "id": 12485120,
+    "user_id": 124125,
+    "problem_id": 30461,
+    "language_code": 1,       // CPP
+    "memory_limited": 1024,   // MB
+    "time_limited": 1000,     // ms
+    "judge_result": 1,        // AC
+    "error_message": null
+}
+```  
 - judge_result: 정수의 형태로 주어집니다.
 ```cpp
 enum judge_result {
@@ -64,10 +76,20 @@ enum language_code {
 ![예상 구조도](./images/architecture.png)
 추후 그림은 언제든지 수정될 수 있습니다.  
 
+## Dependency  
+* [isolate](https://www.github.com/ioi/isolate)
+* [AWS SQS](https://aws.amazon.com/ko/sqs/)
+* [AWS SNS](https://aws.amazon.com/ko/sns/)
+* [rapidjson](https://github.com/Tencent/rapidjson/)
+  ```bash
+  sudo apt-get install rapidjson-dev
+  ```
+
 ## TODO
-* 채점 큐에서 채점 정보 빼내기 (SQS 사용)
-* 채점 완료 후 정보 SNS로 보내기  
+* 지속적으로 채점 큐를 확인하며 채점을 진행하게 하기
 * 런타임 에러 여부 / 시간, 메모리 사용 현황도 제출 정보에 포함시키기
+* 채점 서버 컨테이너에 올리기
+* 문제 관리 서비스와 채점 간의 동기화 필요
 
 ## 조금 더 자세한 설명
  
