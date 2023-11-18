@@ -39,7 +39,9 @@
     "judge_result": 1,        // AC
     "error_message": null
 }
-```  
+```
+AC나 WA같이 에러가 따로 발생하지 않았다면,  
+error_message는 **null**로 보냅니다.  
 - judge_result: 정수의 형태로 주어집니다.
 ```cpp
 enum judge_result {
