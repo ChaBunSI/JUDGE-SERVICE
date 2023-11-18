@@ -9,5 +9,5 @@ testcases/
 build/
 
 # 중요 파일 무시하기
-judge_sqs.h
+judge_aws.h
 ssh_pem/

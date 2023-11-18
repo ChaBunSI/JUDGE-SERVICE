@@ -19,14 +19,14 @@
 #include <rapidjson/stringbuffer.h>
 
 #include "isolate_judge.h"
-#include "judge_sqs.h"
+#include "judge_aws.h"
 
 std::string format_code(const std::string code) {
     std::string new_code;
     new_code.reserve(code.size());
     for (int i = 0; i < code.size(); i++) {
         if (code[i] == '\\') {
-            new_code += '\\';
+            if(!(i+1 < code.size() && code[i+1] == 'n')) new_code += '\\';
         }
         new_code += code[i];
     }
@@ -88,7 +88,7 @@ bool deleteMessage(Aws::String &messageReceiptHandle, const Aws::Client::ClientC
     return outcome.IsSuccess();
 }
 
-// 채점 큐에서 메세지를 잘 받는지 확인하는 함수
+// 채점 큐에서 메세지를 잘 받는지 확인하는 함수. 오로지 테스트 용입니다.
 bool sendMessageSelf(const Aws::Client::ClientConfiguration &clientConfig) {
     Aws::String msg_body = "{\"id\": 68834166, \"problem_id\": 30455, \"user_id\": 990612, \"is_passed\": 1, \"is_judged\": 0, \"judge_status\": 301, \"source\": %23include%20%3Cbits%2Fstdc%2B%2B.h%3E%0A%23define%20fastio%20cin.tie%280%29-%3Esync_with_stdio%280%29%0A%0Ausing%20namespace%20std%3B%0A%0Aint%20main%28%29%20%7B%0A%20%20%20%20fastio%3B%0A%20%20%20%20int%20N%3B%20cin%20%3E%3E%20N%3B%0A%20%20%20%20if%28N%20%26%201%29%20cout%20%3C%3C%20%22Goose%22%3B%0A%20%20%20%20else%20cout%20%3C%3C%20%22Duck%22%3B%0A%20%20%20%20return%200%3B%0A%7D, \"language_code\": 1, \"created_time\": 1, \"start_time\": 1, \"end_time\": 1, \"memory_limited\": 128, \"time_limited\": 1000}";
     Aws::SQS::SQSClient mySQS(Aws::Auth::AWSCredentials(ACCESS_KEY, SECRET_KEY), clientConfig);

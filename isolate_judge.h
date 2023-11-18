@@ -27,6 +27,21 @@ enum judge_result {
     NJ, AC, WA, CE, RE, TLE, MLE, OLE, SE
 };
 
+std::string judge_result_to_string(judge_result res) {
+    switch(res) {
+        case NJ: return "NJ";
+        case AC: return "AC";
+        case WA: return "WA";
+        case CE: return "CE";
+        case RE: return "RE";
+        case TLE: return "TLE";
+        case MLE: return "MLE";
+        case OLE: return "OLE";
+        case SE: return "SE";
+        default: return "NJ";
+    }
+}
+
 // 채점 프로세스 내부에서만 사용되는 에러 코드입니다.
 enum error_code {
     NO_ERROR, COMPILE_ERROR, RUNTIME_ERROR, TIME_LIMIT_EXCEEDED, FILE_CREATE_ERROR

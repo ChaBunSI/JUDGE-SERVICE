@@ -11,6 +11,7 @@
 // 채점 관련 라이브러리
 #include "isolate_judge.h"
 #include "judge_task.h"
+#include "judge_notify.h"
 
 // 워커 (채점 프로세스)의 id 및 샌드박스 경로
 static int wid = -1;
@@ -130,11 +131,10 @@ int main(int argc, char *argv[])
                 }
                 print_statistics(judge_res, cur_sub);
                 //deleteMessage(messageReceiptHandle, clientConfig);
-                //system(std::string("isolate --box-id=" + std::to_string(wid) + " --cleanup").c_str());
+                system(std::string("isolate --box-id=" + std::to_string(wid) + " --cleanup").c_str());
 
                 // TODO:SNS로 채점 결과 보내기
-               
-
+                publishToTopic("Judge Done", clientConfig);
             }
         }
     }
