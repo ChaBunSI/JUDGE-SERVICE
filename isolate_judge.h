@@ -1,6 +1,14 @@
 #ifndef ISOLATE_JUDGE_H
 #define ISOLATE_JUDGE_H
 
+#include <iostream>
+#include <string>
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <unistd.h>
+#include <iomanip>
 #include <map>
  
 /* Judge Result:
@@ -73,17 +81,17 @@ std::map<language, lang_config> lang_configs = {
 // 파일 입출력을 사용해 주어진 코드 (문자열)을 파일로 작성할 것이다.
 // 이때 확장자 (ext)는 위 lang_configs에서 정의한 확장자를 사용할 것이다.
 struct user_submission {
-    size_t sumbit_id, problem_id;
+    size_t sumbit_id, problem_id, user_id;
     language lang;
-    std::string user_id;
     std::string code;
     size_t max_wtime, max_mem, code_bytes;
 
-    user_submission(size_t si, size_t pi, language l, std::string uid, std::string c, size_t mw, size_t mm): sumbit_id(si), problem_id(pi), lang(l), user_id(uid), code(c), max_wtime(mw * 1000), max_mem(mm) { code_bytes = code.size(); }
+    user_submission(size_t si, size_t pi, size_t ui, language l, std::string c, size_t mw, size_t mm): sumbit_id(si), problem_id(pi), lang(l), user_id(ui), code(c), max_wtime(mw * 1000), max_mem(mm) { code_bytes = code.size(); }
     user_submission() {
         sumbit_id = 0U;
+        problem_id = 0U;
+        user_id = 0U;
         lang = CPP;
-        user_id = "";
         code = "";
         max_wtime = max_mem = code_bytes = 0;
     }
@@ -114,20 +122,38 @@ struct user_submission {
 
 // 두 .out 파일을 비교하는 함수
 // 테스트 케이스의 출력 파일과, 사용자의 출력 파일을 비교한다.
-bool strip_and_compare(std::string& str1, std::string& str2) {
+bool strip_and_compare(std::string& out, std::string& usr_out) {
     // Strip the string
-    str1.erase(std::remove(str1.begin(), str1.end(), ' '), str1.end());
-    str1.erase(std::remove(str1.begin(), str1.end(), '\n'), str1.end());
-    str1.erase(std::remove(str1.begin(), str1.end(), '\r'), str1.end());
-    str2.erase(std::remove(str2.begin(), str2.end(), ' '), str2.end());
-    str2.erase(std::remove(str2.begin(), str2.end(), '\n'), str2.end());
-    str2.erase(std::remove(str2.begin(), str2.end(), '\r'), str2.end());
-    return str1 == str2;
+    out.erase(std::remove(out.begin(), out.end(), ' '), out.end());
+    out.erase(std::remove(out.begin(), out.end(), '\n'), out.end());
+    out.erase(std::remove(out.begin(), out.end(), '\r'), out.end());
+    usr_out.erase(std::remove(usr_out.begin(), usr_out.end(), ' '), usr_out.end());
+    usr_out.erase(std::remove(usr_out.begin(), usr_out.end(), '\n'), usr_out.end());
+    usr_out.erase(std::remove(usr_out.begin(), usr_out.end(), '\r'), usr_out.end());
+    return out == usr_out;
+}
+
+bool remove_rawnline_compare(std::string out, std::string usr_out) {
+    std::string new_usr_out;
+    
+    for (int i = 0; i < usr_out.size(); i++) {
+        if (usr_out[i] == '\\') {
+            if (usr_out[i + 1] == 'n') {
+                new_usr_out += '\n';
+                i++;
+            } else {
+                new_usr_out += usr_out[i];
+            }
+        } else {
+            new_usr_out += usr_out[i];
+        }
+    }
+    return out == new_usr_out;
 }
 
 // 채점 결과를 출력하는 함수
 // TODO: 채점 중 가장 긴 실행 시간과 가장 큰 메모리 사용량을 출력해야 한다.
-void print_statistics(std::vector<judge_info>& judge_res) {
+void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_sub) {
     int len = judge_res.size();
     int ac_cnt = 0, not_ac_cnt = 0;
 
@@ -136,7 +162,7 @@ void print_statistics(std::vector<judge_info>& judge_res) {
         else not_ac_cnt++;
     }
 
-    std::cout << "30461 Statistics: \n";
+    std::cout << std::to_string(cur_sub.problem_id) + " Statistics: \n";
     std::cout << "AC: " << ac_cnt << "\n";
     std::cout << "WA: " << not_ac_cnt << "\n";
 }
