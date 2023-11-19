@@ -153,7 +153,6 @@ int main(int argc, char *argv[])
                 print_statistics(judge_res, cur_sub, cur_judge_info);
                 deleteMessage(messageReceiptHandle, clientConfig);
                 system("rm -rf /var/local/lib/isolate/0/box/*");
-                // TODO:SNS로 채점 결과 보내기
                 publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
             }
         }
