@@ -12,3 +12,4 @@ build/
 judge_aws.h
 ssh_pem/
 generate_testcase.cc
+simple_judge.cc

@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 {
     wid = 0;
     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
-    system(std::string("isolate --box-id=" + std::to_string(wid) + " --init").c_str());
+    system(std::string("isolate --cg --box-id=" + std::to_string(wid) + " --init").c_str());
 
     // if(argc < 2) { std::cerr << "no worker ids are given\n"; return -1; }
     // else if(argc == 2) {
@@ -118,11 +118,11 @@ int main(int argc, char *argv[])
                     for (int i = 1; i <= cnt_tc; i++)
                     {
                         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
-                        std::string cur_cmd = "isolate --mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
+                        std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
                         + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0) //ms -> s로 변환
                         + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
                         judge_info &cur_tc_judge_info = judge_res[i - 1];
-
+x
                         int sandbox_exec_res = system(cur_cmd.c_str());
 
                         cur_tc_judge_info.tc_id = i;
