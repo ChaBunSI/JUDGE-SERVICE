@@ -44,7 +44,7 @@ std::string judge_result_to_string(judge_result res) {
 
 // 채점 프로세스 내부에서만 사용되는 에러 코드입니다.
 enum error_code {
-    NO_ERROR, COMPILE_ERROR, RUNTIME_ERROR, TIME_LIMIT_EXCEEDED, FILE_CREATE_ERROR
+    NO_ERROR, COMPILE_ERROR, RUNTIME_ERROR, TIME_LIMIT_EXCEEDED, FILE_CREATE_ERROR, NO_FILE_ERROR
 };
 
 enum language {
@@ -87,7 +87,7 @@ std::map<language, lang_config> lang_configs = {
     {C, lang_config(C, ".c", "gcc Main.c -o Main -O2 -Wall -lm -static -std=gnu11 -DONLINE_JUDGE -DBOJ", "./Main", [](int wtime) -> int { return wtime; }, [](int mem) -> int { return mem; })},
     {CPP, lang_config(CPP, ".cc", "g++ Main.cc -o Main -O2 -Wall -lm -static -std=gnu++20 -DONLINE_JUDGE -DBOJ", "./Main", [](int wtime) -> int { return wtime; }, [](int mem) -> int { return mem; })},
     {JAVA, lang_config(JAVA, ".java", "javac -release 11 -J-Xms1024m -J-Xmx1920m -J-Xss512m -encoding UTF-8 Main.java", "java -Xms1024m -Xmx1920m -Xss512m -Dfile.encoding=UTF-8 -XX:+UseSerialGC -DONLINE_JUDGE=1 -DBOJ=1 Main", [](int wtime) -> int { return 2*wtime+1; }, [](int mem) -> int { return 2*mem+16; })},
-    {PYTHON, lang_config(PYTHON, ".py",R"(python3 -W ignore Main.py)", "python3 -W ignore Main.py", [](int wtime) -> int { return 3*wtime+2; }, [](int mem) -> int { return 2*mem+32; })}
+    {PYTHON, lang_config(PYTHON, ".py", R"(python3 -W ignore -c \"import py_compile; py_compile.compile(r\'Main.py\')\")", "python3 -W ignore Main.py", [](int wtime) -> int { return 3*wtime+2; }, [](int mem) -> int { return 2*mem+32; })}
 };
 
 // 채점 큐에서 꺼낸 제출 정보
@@ -179,7 +179,8 @@ void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_s
 
     std::cout << std::to_string(cur_sub.problem_id) + " Statistics: \n";
     std::cout << "AC: " << ac_cnt << "\n";
-    std::cout << "WA: " << not_ac_cnt << "\n";
+    std::cout << "NOT AC: " << not_ac_cnt << "\n";
+
 
     if(cur_judge_info.res == NJ) {
         if(ac_cnt == judge_res.size()) cur_judge_info.res = AC;
