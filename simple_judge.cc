@@ -14,7 +14,7 @@ enum judge_result {
 
 struct judge_info {
     size_t tc_id;
-    size_t wtime, mem;
+    size_t time, mem;
     judge_result res;
 };
 
@@ -25,9 +25,9 @@ void print_statistics(std::vector<judge_info>& judge_res) {
 
     for(auto& e: judge_res) {
         if(e.res == AC) {
-            wtime_sum += e.wtime;
+            wtime_sum += e.time;
             mem_sum += e.mem;
-            max_wtime = std::max(max_wtime, (double)e.wtime);
+            max_wtime = std::max(max_wtime, (double)e.time);
             ac_cnt++;
         }
         else not_ac_cnt++;
@@ -36,9 +36,9 @@ void print_statistics(std::vector<judge_info>& judge_res) {
     std::cout << "30461 Statistics: \n";
     std::cout << "AC: " << ac_cnt << "\n";
     std::cout << "WA: " << not_ac_cnt << "\n";
-    std::cout << "Average wtime: " << std::setprecision(5) << wtime_sum / ac_cnt << "ms\n";
+    std::cout << "Average time: " << std::setprecision(5) << wtime_sum / ac_cnt << "ms\n";
     std::cout << "Average mem: " << std::setprecision(5) << mem_sum / ac_cnt << "\n";
-    std::cout << "Max wtime: " << std::setprecision(5) << max_wtime << "ms\n";
+    std::cout << "Max time: " << std::setprecision(5) << max_wtime << "ms\n";
 }
 
 bool strip_and_compare(std::string& str1, std::string& str2) {
@@ -82,7 +82,7 @@ int main() {
         // Initialize the judge info
         cur_judge_info.tc_id = i;
         cur_judge_info.res = NJ;
-        cur_judge_info.wtime = 0.0;
+        cur_judge_info.time = 0.0;
         cur_judge_info.mem = 0.0;
 
         // Run the program and measure the time and memory
@@ -104,7 +104,7 @@ int main() {
             } else cur_judge_info.res = AC;
         }
 
-        cur_judge_info.wtime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        cur_judge_info.time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     }
 
     print_statistics(judge_res);

@@ -11,3 +11,4 @@ build/
 # 중요 파일 무시하기
 judge_aws.h
 ssh_pem/
+generate_testcase.cc

@@ -33,7 +33,7 @@ Aws::String judge_res_to_aws_string(judge_info &res, user_submission &sub) {
     doc.AddMember("problem_id", sub.problem_id, allocator);
     doc.AddMember("language_code", sub.lang, allocator);
     doc.AddMember("memory_limited", sub.max_mem, allocator);
-    doc.AddMember("time_limited", sub.max_wtime, allocator);
+    doc.AddMember("time_limited", sub.max_time, allocator);
     doc.AddMember("judge_result", res.res, allocator);
     doc.AddMember("error_message", val_errmsg, allocator);
 

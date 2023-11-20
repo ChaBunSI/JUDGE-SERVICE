@@ -56,12 +56,14 @@ int main(int argc, char *argv[])
             {
                 std::cout << "Received the message successfully\n";
 
+                // 채점마다 필요한 변수들
                 auto cur_config = lang_configs[cur_sub.lang];
                 judge_info cur_judge_info;
-                cur_judge_info.res = NJ;
                 error_code process_res = NO_ERROR;
                 std::vector<judge_info> judge_res;
 
+                cur_judge_info.res = NJ;
+                
                 // 해당 문제 or 문제의 테케 존재 여부 확인
                 if (!std::filesystem::exists("../testcases/" + std::to_string(cur_sub.problem_id)))
                 {
@@ -104,7 +106,8 @@ int main(int argc, char *argv[])
                     judge_res.resize(cnt_tc);
 
                     // 문제의 테스트 케이스들과 실행 코드를 샌드박스 내로 복사
-                    std::string cp_tc = "cp Main " + cur_tc_dir + "/* " + isolate_dir;
+                    std::string cp_tc = "cp Main" + cur_config.exec_ext + " " + cur_tc_dir + "/* " + isolate_dir;
+
                     if (system(cp_tc.c_str()) < 0)
                     {
                         std::cerr << "Failed to copy the files\n";
@@ -115,7 +118,9 @@ int main(int argc, char *argv[])
                     for (int i = 1; i <= cnt_tc; i++)
                     {
                         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
-                        std::string cur_cmd = "isolate --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
+                        std::string cur_cmd = "isolate --mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
+                        + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0) //ms -> s로 변환
+                        + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
                         judge_info &cur_tc_judge_info = judge_res[i - 1];
 
                         int sandbox_exec_res = system(cur_cmd.c_str());
