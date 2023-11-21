@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
             if (!received_sub)
             {
                 std::cerr << "Failed to receive the message\n";
-                sleep(10);
+                sleep(5);
             }
             else
             {
@@ -118,11 +118,11 @@ int main(int argc, char *argv[])
                     for (int i = 1; i <= cnt_tc; i++)
                     {
                         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
-                        std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
-                        + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0) //ms -> s로 변환
-                        + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
+                        std::string cur_cmd = "isolate --stdin=" /*+ std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000)  // MB -> KB로 변환
+                        + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0) */ //ms -> s로 변환 
+                       /* + " --stdin="*/ + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
                         judge_info &cur_tc_judge_info = judge_res[i - 1];
-x
+
                         int sandbox_exec_res = system(cur_cmd.c_str());
 
                         cur_tc_judge_info.tc_id = i;
