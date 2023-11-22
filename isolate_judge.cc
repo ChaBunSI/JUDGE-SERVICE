@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
             else
             {
                 std::cout << "Received the message successfully\n";
-
+                deleteMessage(messageReceiptHandle, clientConfig);
                 // 채점마다 필요한 변수들
                 auto cur_config = lang_configs[cur_sub.lang];
                 judge_info cur_judge_info;
@@ -118,9 +118,9 @@ int main(int argc, char *argv[])
                     for (int i = 1; i <= cnt_tc; i++)
                     {
                         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
-                        std::string cur_cmd = "isolate --stdin=" /*+ std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000)  // MB -> KB로 변환
-                        + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0) */ //ms -> s로 변환 
-                       /* + " --stdin="*/ + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
+                        std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000)  // MB -> KB로 변환
+                        + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0)                                //ms -> s로 변환 
+                        + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
                         judge_info &cur_tc_judge_info = judge_res[i - 1];
 
                         int sandbox_exec_res = system(cur_cmd.c_str());
@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
                 }
                 
                 if(process_res == NO_ERROR) print_statistics(judge_res, cur_sub, cur_judge_info);
-                deleteMessage(messageReceiptHandle, clientConfig);
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
                 system(cleanup.c_str());
                 publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
