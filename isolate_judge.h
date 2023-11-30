@@ -107,14 +107,14 @@ std::map<language, lang_config> lang_configs = {
 // 파일 입출력을 사용해 주어진 코드 (문자열)을 파일로 작성할 것이다.
 // 이때 확장자 (code_ext)는 위 lang_configs에서 정의한 확장자를 사용할 것이다.
 struct user_submission {
-    size_t sumbit_id, problem_id, user_id;
+    size_t submit_id, problem_id, user_id;
     language lang;
     std::string code;
     size_t max_time, max_mem, code_bytes; // ms, MB, bytes
 
-    user_submission(size_t si, size_t pi, size_t ui, language l, std::string c, size_t mw, size_t mm): sumbit_id(si), problem_id(pi), lang(l), user_id(ui), code(c), max_time(mw), max_mem(mm) { code_bytes = code.size(); }
+    user_submission(size_t si, size_t pi, size_t ui, language l, std::string c, size_t mw, size_t mm): submit_id(si), problem_id(pi), lang(l), user_id(ui), code(c), max_time(mw), max_mem(mm) { code_bytes = code.size(); }
     user_submission() {
-        sumbit_id = 0U;
+        submit_id = 0U;
         problem_id = 0U;
         user_id = 0U;
         lang = CPP;
@@ -178,20 +178,29 @@ bool remove_rawnline_compare(std::string out, std::string usr_out) {
 }
 
 // 채점 결과를 출력하는 함수
-// TODO: 채점 중 가장 긴 실행 시간과 가장 큰 메모리 사용량을 출력해야 한다.
+// 채점 중 가장 긴 실행 시간과 가장 큰 메모리 사용량을 출력해야 한다.
 void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_sub, judge_info& cur_judge_info) {
     int len = judge_res.size();
     int ac_cnt = 0, not_ac_cnt = 0;
 
     for(auto& e: judge_res) {
-        if(e.res == AC) ac_cnt++;
+        if(e.res == AC) {
+            ac_cnt++;
+            cur_judge_info.time = std::max(cur_judge_info.time, e.time);
+            cur_judge_info.mem = std::max(cur_judge_info.mem, e.mem);
+        }
         else not_ac_cnt++;
     }
 
+    std::cout << "=======================================\n";
     std::cout << std::to_string(cur_sub.problem_id) + " Statistics: \n";
     std::cout << "AC: " << ac_cnt << "\n";
     std::cout << "NOT AC: " << not_ac_cnt << "\n";
-
+    std::cout << "Judge result: " << judge_result_to_string(cur_judge_info.res) << "\n";
+    std::cout << "Max Time: " << cur_judge_info.time << "ms\n";
+    std::cout << "Max Memory: " << cur_judge_info.mem << "KB\n";
+    std::cout << "Error Message: " << cur_judge_info.err_msg << "\n";
+    std::cout << "=======================================\n";
 
     if(cur_judge_info.res == NJ) {
         if(ac_cnt == judge_res.size()) cur_judge_info.res = AC;

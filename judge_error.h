@@ -1,0 +1,17 @@
+#ifndef JUDGE_ERROR_H
+#define JUDGE_ERROR_H
+
+#include <string>
+
+// SIGNALS for x86/ARM
+const std::string SIGNALS[32] = {
+    "", "SIGHUP", "SIGINT", "SIGQUIT", "SIGILL", "SIGTRAP", "SIGABRT",
+    "SIGIOT", "SIGBUS", "SIGKILL", "SIGUSR1", "SIGSEGV",
+    "SIGUSR2", "SIGPIPE", "SIGALRM", "SIGTERM", "SIGSTKFLT", "SIGCHLD",
+    "SIGCONT", "SIGSTOP", "SIGTSTP", "SIGTTIN", "SIGTTOU", "SIGURG",
+    "SIGXCPU", "SIGXFSZ", "SIGVTALRM", "SIGPROF", "SIGWINCH", "SIGIO",
+    "SIGPWR", "SIGSYS"
+};
+
+
+#endif

@@ -12,6 +12,7 @@
 #include "isolate_judge.h"
 #include "judge_task.h"
 #include "judge_notify.h"
+#include "judge_error.h"
 
 // 워커 (채점 프로세스)의 id 및 샌드박스 경로
 static int wid = -1;
@@ -61,6 +62,7 @@ int main(int argc, char *argv[])
                 judge_info cur_judge_info;
                 error_code process_res = NO_ERROR;
                 std::vector<judge_info> judge_res;
+                bool error_occured = false;
 
                 cur_judge_info.res = NJ;
 
@@ -90,7 +92,7 @@ int main(int argc, char *argv[])
                 else if (process_res == NO_ERROR)
                 {
                     std::string current_path = std::filesystem::current_path();
-                    std::string submit_id = std::to_string(cur_sub.sumbit_id);
+                    std::string submit_id = std::to_string(cur_sub.submit_id);
 
                     // 채점하기
                     std::string cur_tc_dir = "../testcases/" + std::to_string(cur_sub.problem_id) + "/";
@@ -117,28 +119,19 @@ int main(int argc, char *argv[])
                     }
 
                     // 샌드박스 내에서 테스트케이스 별로 제출된 코드 실행 후 결과 저장
-                    for (int i = 1; i <= cnt_tc; i++)
+                    for (int i = 1; i <= cnt_tc && !error_occured; i++)
                     {
                         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
                         std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
                                               + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0)         // ms -> s로 변환
-                                              + " --box-id=" + std::to_string(wid)
-                                              + " --meta=" + submit_id + ".meta" + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
+                                              + " --box-id=" + std::to_string(wid) + " --meta=" + submit_id + ".meta" + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
                         judge_info &cur_tc_judge_info = judge_res[i - 1];
 
                         int sandbox_exec_res = system(cur_cmd.c_str());
 
                         cur_tc_judge_info.tc_id = i;
 
-                        if (sandbox_exec_res != 0)
-                        {
-                            std::cerr << "Sandbox Execution Error\n";
-                            cur_judge_info.res = SE;
-                            cur_tc_judge_info.res = SE;
-                            break;
-                        }
-
-                        // TODO:샌드박스에서 결과 가져오기 (에러 등)
+                        // 샌드박스에서 결과 가져오기 (에러 등)
                         std::ifstream usr_out(isolate_dir + "/usr_" + tc_num + ".out");
                         std::ifstream tc_out(cur_tc_dir + "/" + tc_num + ".out");
                         std::ifstream meta_out(submit_id + ".meta");
@@ -160,28 +153,44 @@ int main(int argc, char *argv[])
                             // 메타 데이터에서 실행 시간과 메모리 사용량 가져오기
                             std::cout << "time: " << meta_data["time"] << "\n";
                             std::cout << "cg-mem: " << meta_data["cg-mem"] << "\n";
-                            cur_judge_info.time = std::max(cur_tc_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
-                            cur_judge_info.mem = std::max(cur_tc_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"])));
+                            cur_tc_judge_info.time = std::max(cur_tc_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
+                            cur_tc_judge_info.mem = std::max(cur_tc_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"])));
+
+                            if (meta_data.count("status") > 0)
+                            {
+                                std::string status = meta_data["status"];
+                                if (status == "TO")
+                                {
+                                    cur_tc_judge_info.res = TLE;
+                                }
+                                else if (status == "SG" || status == "RE")
+                                {
+                                    cur_tc_judge_info.res = RE;
+                                }
+                                else if (status == "XX")
+                                {
+                                    cur_tc_judge_info.res = SE;
+                                }
+                            }
                         }
                         else
                             std::cout << "meta_out is not open\n";
-
-                        if (meta_data.count("status") > 0)
+                        
+                        if (sandbox_exec_res != 0)
                         {
-                            std::string status = meta_data["status"];
-                            if (status == "TO")
-                            {
-                                cur_tc_judge_info.res = TLE;
-                            }
-                            else if (status == "SG" || status == "RE")
-                            {
-                                cur_tc_judge_info.res = RE;
-                            }
-                            else if (status == "XX")
-                            {
+                            std::cerr << "Error occured at sandbox!\n";
+
+                            if(cur_tc_judge_info.res == TLE || cur_tc_judge_info.res == RE || cur_tc_judge_info.res == SE)
+                                cur_judge_info.res = cur_tc_judge_info.res;
+                                if(cur_judge_info.res == RE) {
+                                    cur_judge_info.err_msg = SIGNALS[std::stoi(meta_data["exitsig"])];
+                                }
+                            else
                                 cur_tc_judge_info.res = SE;
-                            }
+                            error_occured = true;
+                            break;
                         }
+                        
 
                         while (std::getline(tc_out, tc_out_str) && std::getline(usr_out, usr_out_str))
                         {
@@ -207,7 +216,19 @@ int main(int argc, char *argv[])
                 if (process_res == NO_ERROR)
                     print_statistics(judge_res, cur_sub, cur_judge_info);
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
-                system(cleanup.c_str());
+
+                if (system(cleanup.c_str()) < 0) {
+                    std::cerr << "Failed to clean up the files\n";
+                    return -1;
+                };
+
+                std::string cleanup_meta = "rm " + std::to_string(cur_sub.submit_id) + ".meta";
+                
+                if (system(cleanup_meta.c_str()) < 0) {
+                    std::cerr << "Failed to remove the meta file\n";
+                    return -1;
+                }
+                
                 publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
             }
         }
