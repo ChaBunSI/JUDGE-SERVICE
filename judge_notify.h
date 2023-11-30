@@ -28,14 +28,26 @@ Aws::String judge_res_to_aws_string(judge_info &res, user_submission &sub) {
         val_errmsg.SetString(res.err_msg.c_str(), res.err_msg.size(), allocator);
     }
 
-    doc.AddMember("id", sub.sumbit_id, allocator);
+    doc.AddMember("id", sub.submit_id, allocator);
     doc.AddMember("user_id", sub.user_id, allocator);
     doc.AddMember("problem_id", sub.problem_id, allocator);
     doc.AddMember("language_code", sub.lang, allocator);
-    doc.AddMember("memory_limited", sub.max_mem, allocator);
-    doc.AddMember("time_limited", sub.max_time, allocator);
+    doc.AddMember("memory_limited", res.mem, allocator);
+    doc.AddMember("time_limited", res.time, allocator);
     doc.AddMember("judge_result", res.res, allocator);
     doc.AddMember("error_message", val_errmsg, allocator);
+
+    // 제출 결과 출력 (확인용)
+    #ifdef DEBUG
+    std::cout << "\nsubmit_id: " << sub.submit_id << "\n";
+    std::cout << "user_id: " << sub.user_id << "\n";
+    std::cout << "problem_id: " << sub.problem_id << "\n";
+    std::cout << "language_code: " << language_to_string(sub.lang) << "\n";
+    std::cout << "memory: " << res.mem << "\n";
+    std::cout << "time: " << res.time << "\n";
+    std::cout << "judge_result: " << judge_result_to_string(res.res) << "\n";
+    std::cout << "error_message: " << res.err_msg << "\n";
+    #endif
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
