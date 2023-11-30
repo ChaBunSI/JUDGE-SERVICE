@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
             else
             {
                 std::cout << "Received the message successfully\n";
-                deleteMessage(messageReceiptHandle, clientConfig);
+
                 // 채점마다 필요한 변수들
                 auto cur_config = lang_configs[cur_sub.lang];
                 judge_info cur_judge_info;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
                 std::vector<judge_info> judge_res;
 
                 cur_judge_info.res = NJ;
-                
+
                 // 해당 문제 or 문제의 테케 존재 여부 확인
                 if (!std::filesystem::exists("../testcases/" + std::to_string(cur_sub.problem_id)))
                 {
@@ -71,8 +71,9 @@ int main(int argc, char *argv[])
                     cur_judge_info.res = NJ;
                     cur_judge_info.err_msg = std::to_string(cur_sub.problem_id) + " does not exist";
                     process_res = NO_FILE_ERROR;
-                    
-                } else {
+                }
+                else
+                {
                     cur_sub.compile_code(cur_config);
                 }
 
@@ -89,7 +90,8 @@ int main(int argc, char *argv[])
                 else if (process_res == NO_ERROR)
                 {
                     std::string current_path = std::filesystem::current_path();
-                    std::cout << current_path << "\n";
+                    std::string submit_id = std::to_string(cur_sub.sumbit_id);
+
                     // 채점하기
                     std::string cur_tc_dir = "../testcases/" + std::to_string(cur_sub.problem_id) + "/";
                     auto cur_tc_dir_iter = std::filesystem::directory_iterator(cur_tc_dir);
@@ -118,9 +120,10 @@ int main(int argc, char *argv[])
                     for (int i = 1; i <= cnt_tc; i++)
                     {
                         std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
-                        std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000)  // MB -> KB로 변환
-                        + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0)                                //ms -> s로 변환 
-                        + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
+                        std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
+                                              + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0)         // ms -> s로 변환
+                                              + " --box-id=" + std::to_string(wid)
+                                              + " --meta=" + submit_id + ".meta" + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
                         judge_info &cur_tc_judge_info = judge_res[i - 1];
 
                         int sandbox_exec_res = system(cur_cmd.c_str());
@@ -138,7 +141,47 @@ int main(int argc, char *argv[])
                         // TODO:샌드박스에서 결과 가져오기 (에러 등)
                         std::ifstream usr_out(isolate_dir + "/usr_" + tc_num + ".out");
                         std::ifstream tc_out(cur_tc_dir + "/" + tc_num + ".out");
-                        std::string tc_out_str, usr_out_str;
+                        std::ifstream meta_out(submit_id + ".meta");
+                        std::string tc_out_str, usr_out_str, meta_line;
+                        std::map<std::string, std::string> meta_data;
+
+                        // 메타 데이터 읽기
+                        if (meta_out.is_open())
+                        {
+                            while (std::getline(meta_out, meta_line))
+                            {
+                                std::stringstream ss(meta_line);
+                                std::string key, value;
+                                std::getline(ss, key, ':');
+                                std::getline(ss, value, ':');
+                                meta_data[key] = value;
+                            }
+
+                            // 메타 데이터에서 실행 시간과 메모리 사용량 가져오기
+                            std::cout << "time: " << meta_data["time"] << "\n";
+                            std::cout << "cg-mem: " << meta_data["cg-mem"] << "\n";
+                            cur_judge_info.time = std::max(cur_tc_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
+                            cur_judge_info.mem = std::max(cur_tc_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"])));
+                        }
+                        else
+                            std::cout << "meta_out is not open\n";
+
+                        if (meta_data.count("status") > 0)
+                        {
+                            std::string status = meta_data["status"];
+                            if (status == "TO")
+                            {
+                                cur_tc_judge_info.res = TLE;
+                            }
+                            else if (status == "SG" || status == "RE")
+                            {
+                                cur_tc_judge_info.res = RE;
+                            }
+                            else if (status == "XX")
+                            {
+                                cur_tc_judge_info.res = SE;
+                            }
+                        }
 
                         while (std::getline(tc_out, tc_out_str) && std::getline(usr_out, usr_out_str))
                         {
@@ -157,10 +200,12 @@ int main(int argc, char *argv[])
                         }
                         usr_out.close();
                         tc_out.close();
+                        meta_out.close();
                     }
                 }
-                
-                if(process_res == NO_ERROR) print_statistics(judge_res, cur_sub, cur_judge_info);
+                deleteMessage(messageReceiptHandle, clientConfig);
+                if (process_res == NO_ERROR)
+                    print_statistics(judge_res, cur_sub, cur_judge_info);
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
                 system(cleanup.c_str());
                 publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);

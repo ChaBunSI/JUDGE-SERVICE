@@ -51,6 +51,16 @@ enum language {
     C, CPP, JAVA, PYTHON
 };
 
+std::string language_to_string(language lang) {
+    switch(lang) {
+        case C: return "C";
+        case CPP: return "CPP";
+        case JAVA: return "JAVA";
+        case PYTHON: return "PYTHON";
+        default: return "C";
+    }
+}
+
 // 각 언어별 컴파일 옵션, 실행 옵션, 시간 제한, 메모리 제한 등을 저장하는 구조체
 struct lang_config {
     language lang;
