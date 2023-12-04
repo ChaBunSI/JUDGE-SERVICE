@@ -151,8 +151,6 @@ int main(int argc, char *argv[])
                             }
 
                             // 메타 데이터에서 실행 시간과 메모리 사용량 가져오기
-                            std::cout << "time: " << meta_data["time"] << "\n";
-                            std::cout << "cg-mem: " << meta_data["cg-mem"] << "\n";
                             cur_tc_judge_info.time = std::max(cur_tc_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
                             cur_tc_judge_info.mem = std::max(cur_tc_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"])));
 
@@ -188,6 +186,9 @@ int main(int argc, char *argv[])
                             else
                                 cur_tc_judge_info.res = SE;
                             error_occured = true;
+
+                            // 실시간 채점 현황에 에러 났다고 전송
+                            sendToQueue(cur_sub.submit_id, i, cur_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cnt_tc, i, cur_tc_judge_info.res), clientConfig);
                             break;
                         }
                         
@@ -207,9 +208,16 @@ int main(int argc, char *argv[])
                         {
                             cur_tc_judge_info.res = OLE;
                         }
+
+                        sendToQueue(cur_sub.submit_id, i, cur_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cnt_tc, i, cur_tc_judge_info.res), clientConfig);
                         usr_out.close();
                         tc_out.close();
                         meta_out.close();
+
+                        if(cur_tc_judge_info.res != AC) {
+                            cur_judge_info.res = cur_tc_judge_info.res;
+                            break;
+                        }
                     }
                 }
                 deleteMessage(messageReceiptHandle, clientConfig);
@@ -229,7 +237,7 @@ int main(int argc, char *argv[])
                     return -1;
                 }
                 
-                publishToTopic(judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
+                publishToTopic(cur_sub.submit_id, judge_res_to_aws_string(cur_judge_info, cur_sub), clientConfig);
             }
         }
     }

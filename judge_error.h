@@ -13,5 +13,4 @@ const std::string SIGNALS[32] = {
     "SIGPWR", "SIGSYS"
 };
 
-
 #endif
