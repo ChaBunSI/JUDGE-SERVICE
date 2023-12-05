@@ -50,7 +50,7 @@ user_submission unmarshal(const Aws::SQS::Model::Message& msg) {
     return user_submission(doc["id"].GetUint64(), doc["problem_id"].GetUint64(), doc["user_id"].GetUint64(), static_cast<language>(doc["language_code"].GetUint()), format_code(doc["source"].GetString()), doc["memory_limited"].GetUint(), doc["time_limited"].GetUint());
 }
 
-bool receiveMessage(user_submission &sub, const Aws::Client::ClientConfiguration &clientConfig, Aws::String &messageReceiptHandle) {
+bool receiveMessageFromJudgeTask(user_submission &sub, const Aws::Client::ClientConfiguration &clientConfig, Aws::String &messageReceiptHandle) {
     Aws::SQS::SQSClient mySQS(Aws::Auth::AWSCredentials(ACCESS_KEY, SECRET_KEY), clientConfig);
     Aws::SQS::Model::ReceiveMessageRequest request;
     request.SetQueueUrl(QUEUE_URL);
@@ -73,7 +73,7 @@ bool receiveMessage(user_submission &sub, const Aws::Client::ClientConfiguration
     return outcome.IsSuccess();
 }
 
-bool deleteMessage(Aws::String &messageReceiptHandle, const Aws::Client::ClientConfiguration &clientConfig) {
+bool deleteMessageJudgeTask(Aws::String &messageReceiptHandle, const Aws::Client::ClientConfiguration &clientConfig) {
     Aws::SQS::SQSClient mySQS(Aws::Auth::AWSCredentials(ACCESS_KEY, SECRET_KEY), clientConfig);
     Aws::SQS::Model::DeleteMessageRequest request;
     request.SetQueueUrl(QUEUE_URL);

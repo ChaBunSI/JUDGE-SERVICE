@@ -13,6 +13,8 @@
 #include <aws/sqs/SQSClient.h>
 #include <aws/sqs/model/SendMessageRequest.h>
 
+#define DEBUG
+
 // duplication id를 생성하는 함수: 시간을 기반으로 생성
 std::string generate_dup_id(int submit_id, int tc_id=-1) {
     std::string res = std::to_string(submit_id);
@@ -37,6 +39,8 @@ Aws::String judge_res_to_aws_string(judge_info &res, user_submission &sub) {
     doc.AddMember("language_code", sub.lang, allocator);
     doc.AddMember("memory_limited", sub.max_mem, allocator);
     doc.AddMember("time_limited", sub.max_time, allocator);
+    doc.AddMember("memory_used", res.mem, allocator);
+    doc.AddMember("time_used", res.time, allocator);
     doc.AddMember("judge_result", res.res, allocator);
     doc.AddMember("error_message", val_errmsg, allocator);
 
@@ -57,6 +61,10 @@ bool publishToTopic(int submit_id, const Aws::String& message, const Aws::Client
     const Aws::SNS::Model::PublishOutcome outcome = mySNS.Publish(request);
     if(outcome.IsSuccess()) {
         std::cout << "Message published successfully with id " << outcome.GetResult().GetMessageId() << "\n";
+
+        #ifdef DEBUG
+        std::cout << "Message body: " << message << "\n";
+        #endif
         return true;
     } else {
         std::cerr << "Failed to publish message: " << outcome.GetError().GetMessage() << "\n";

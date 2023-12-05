@@ -41,6 +41,8 @@
     "language_code": 1,       // CPP
     "memory_limited": 1024,   // MB
     "time_limited": 1000,     // ms
+    "memory_used": 2020,      // KB
+    "time_used": 144,         // ms
     "judge_result": 1,        // AC
     "error_message": null
 }

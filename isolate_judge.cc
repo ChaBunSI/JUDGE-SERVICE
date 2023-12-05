@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
         while (1)
         {
             Aws::String messageReceiptHandle;
-            received_sub = receiveMessage(cur_sub, clientConfig, messageReceiptHandle);
+            received_sub = receiveMessageFromJudgeTask(cur_sub, clientConfig, messageReceiptHandle);
             if (!received_sub)
             {
                 std::cerr << "Failed to receive the message\n";
@@ -192,7 +192,6 @@ int main(int argc, char *argv[])
                             break;
                         }
                         
-
                         while (std::getline(tc_out, tc_out_str) && std::getline(usr_out, usr_out_str))
                         {
                             if (!strip_and_compare(tc_out_str, usr_out_str))
@@ -220,7 +219,10 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-                deleteMessage(messageReceiptHandle, clientConfig);
+
+                // TODO: 채점이 길어지면, 메세지가 삭제되지 않을 수 있음 -> 수정 필요
+                deleteMessageJudgeTask(messageReceiptHandle, clientConfig);
+                
                 if (process_res == NO_ERROR)
                     print_statistics(judge_res, cur_sub, cur_judge_info);
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
@@ -228,7 +230,7 @@ int main(int argc, char *argv[])
                 if (system(cleanup.c_str()) < 0) {
                     std::cerr << "Failed to clean up the files\n";
                     return -1;
-                };
+                }
 
                 std::string cleanup_meta = "rm " + std::to_string(cur_sub.submit_id) + ".meta";
                 
