@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
         while (1)
         {
             Aws::String messageReceiptHandle;
-            received_sub = receiveMessageFromJudgeTask(cur_sub, clientConfig, messageReceiptHandle);
+            received_sub = receiveMessageJudgeTask(cur_sub, clientConfig, messageReceiptHandle);
             if (!received_sub)
             {
                 std::cerr << "Failed to receive the message\n";

@@ -12,7 +12,6 @@
 #include <aws/sqs/model/DeleteMessageRequest.h>
 #include <aws/sqs/model/SendMessageRequest.h>
 #include <aws/sqs/model/SendMessageResult.h>
-#include <aws/sqs/model/DeleteMessageRequest.h>
 
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
@@ -50,7 +49,7 @@ user_submission unmarshal(const Aws::SQS::Model::Message& msg) {
     return user_submission(doc["id"].GetUint64(), doc["problem_id"].GetUint64(), doc["user_id"].GetUint64(), static_cast<language>(doc["language_code"].GetUint()), format_code(doc["source"].GetString()), doc["memory_limited"].GetUint(), doc["time_limited"].GetUint());
 }
 
-bool receiveMessageFromJudgeTask(user_submission &sub, const Aws::Client::ClientConfiguration &clientConfig, Aws::String &messageReceiptHandle) {
+bool receiveMessageJudgeTask(user_submission &sub, const Aws::Client::ClientConfiguration &clientConfig, Aws::String &messageReceiptHandle) {
     Aws::SQS::SQSClient mySQS(Aws::Auth::AWSCredentials(ACCESS_KEY, SECRET_KEY), clientConfig);
     Aws::SQS::Model::ReceiveMessageRequest request;
     request.SetQueueUrl(QUEUE_URL);
@@ -82,10 +81,11 @@ bool deleteMessageJudgeTask(Aws::String &messageReceiptHandle, const Aws::Client
     const Aws::SQS::Model::DeleteMessageOutcome outcome = mySQS.DeleteMessage(request);
     if(outcome.IsSuccess()) {
         std::cout << "Message deleted successfully.\n";
+        return true;
     } else {
         std::cout << "Error deleting message from queue: " << outcome.GetError().GetMessage() << "\n";
+        return false;
     }
-    return outcome.IsSuccess();
 }
 
 // 채점 큐에서 메세지를 잘 받는지 확인하는 함수. 오로지 테스트 용입니다.
