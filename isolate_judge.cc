@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
                     // 샌드박스 내에서 테스트케이스 별로 제출된 코드 실행 후 결과 저장
                     for (int i = 1; i <= cnt_tc && !error_occured; i++)
                     {
-                        std::string tc_num = i < 10 ? "0" + std::to_string(i) : std::to_string(i);
+                        std::string tc_num = std::to_string(i);
                         std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
                                               + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0)         // ms -> s로 변환
                                               + " --box-id=" + std::to_string(wid) + " --meta=" + submit_id + ".meta" + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
