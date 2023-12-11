@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <fstream>
+#include <filesystem>
 
 #include <aws/sqs/SQSClient.h>
 #include <aws/sqs/model/ReceiveMessageRequest.h>
@@ -248,6 +249,34 @@ bool process_crud_delete(crud_request &c_req)
         else
         {
             std::cerr << "Cannot delete the testcase " << tc_num << ".out -- it does not exist.\n";
+        }
+    }
+
+    if (res) {
+        // Case 1: 문제 디렉토리가 비어 있는 경우
+        // Case 2: 테스트케이스를 하나라도 삭제한 경우
+        // 이때는 다시 1부터 번호를 매겨준다.
+
+        auto tc_dir_iter(tc_dir);
+        int tc_cnt = std::count_if(
+            begin(tc_dir_iter), end(tc_dir_iter),
+            [](const std::filesystem::directory_entry &e) {
+                return e.is_regular_file();
+            }) / 2;
+        
+        // Case 1
+        if (tc_cnt == 0) {
+            std::filesystem::remove_all(tc_dir);
+        // Case 2
+        } else if (tc_cnt > 0) {
+            int idx = 1;
+            for (auto &tc : std::filesystem::directory_iterator(tc_dir)) {
+                std::string tc_num = std::to_string(idx);
+                std::filesystem::rename(tc.path(), tc_dir + tc_num + tc.path().extension().string());
+                idx++;
+            }
+        } else {
+            std::cerr << "Error while counting the number of testcases\n";
         }
     }
     return res;
