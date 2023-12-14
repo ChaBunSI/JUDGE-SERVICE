@@ -16,6 +16,20 @@
 
 #include "judge_aws.h"
 
+// path 간의 비교를 위한 functor
+struct Cmp
+{
+    bool operator()(const std::filesystem::path &lhs, const std::filesystem::path &rhs) const
+    {
+        int p1 = std::stoi(lhs.stem().string());
+        int p2 = std::stoi(rhs.stem().string());
+
+        if (p1 == p2)
+            return lhs.extension().string().size() < rhs.extension().string().size();
+        return p1 < p2;
+    }
+};
+
 // 문제 관리 서비스에서 테케 CRUD 요청이 오면, 요청 처리
 enum event_type
 {
@@ -132,6 +146,14 @@ bool process_crud_add(crud_request &c_req)
 {
     std::string tc_dir = "../testcases/" + std::to_string(c_req.problem_id) + "/";
     std::filesystem::path tc_path(tc_dir);
+    auto tc_dir_iter = std::filesystem::directory_iterator(tc_dir);
+    int tc_cnt = std::count_if(
+                     begin(tc_dir_iter), end(tc_dir_iter),
+                     [](const std::filesystem::directory_entry &e)
+                     {
+                         return e.is_regular_file();
+                     }) /
+                 2;
     std::cout << "ADD Request!\n";
 
     // 새로운 문제인 경우, 해당 디렉토리 생성
@@ -146,9 +168,12 @@ bool process_crud_add(crud_request &c_req)
         }
     }
 
+    // 존재하지 않는 id: 새로운 테스트케이스 추가
+    // ex) tc가 현재 20개, 추가 요청으로 온 id=144라면, 원활한 채점을 위해 id가 21인 테스트케이스 추가
+    // 존재하는 id: overwrite
     for (auto &tc : c_req.testcases)
     {
-        std::string tc_num = tc.id < 10 ? "0" + std::to_string(tc.id) : std::to_string(tc.id);
+        std::string tc_num = tc.id > tc_cnt ? std::to_string(tc_cnt + 1) : std::to_string(tc.id); 
         std::ofstream tc_in = std::ofstream(tc_dir + tc_num + ".in", std::ios::out | std::ios::trunc);
         std::ofstream tc_out = std::ofstream(tc_dir + tc_num + ".out", std::ios::out | std::ios::trunc);
 
@@ -230,7 +255,7 @@ bool process_crud_delete(crud_request &c_req)
         std::string tc_num = std::to_string(tc.id);
         std::filesystem::path tc_in_path(tc_dir + tc_num + ".in"), tc_out_path(tc_dir + tc_num + ".out");
 
-        // 테스트 케이스가 존재하지 않는 경우
+        // 테스트 케이스가 존재하는 경우에만 delete
         if (std::filesystem::exists(tc_in_path))
         {
             std::filesystem::remove(tc_dir + tc_num + ".in");
@@ -251,32 +276,39 @@ bool process_crud_delete(crud_request &c_req)
             std::cerr << "Cannot delete the testcase " << tc_num << ".out -- it does not exist.\n";
         }
     }
-
-    if (res) {
-        // Case 1: 문제 디렉토리가 비어 있는 경우
-        // Case 2: 테스트케이스를 하나라도 삭제한 경우
-        // 이때는 다시 1부터 번호를 매겨준다.
-
-        auto tc_dir_iter(tc_dir);
+    
+    // 테스트케이스가 모두 삭제되었다면 디렉토리도 삭제
+    if (res)
+    {
+        auto tc_dir_iter = std::filesystem::directory_iterator(tc_dir);
         int tc_cnt = std::count_if(
-            begin(tc_dir_iter), end(tc_dir_iter),
-            [](const std::filesystem::directory_entry &e) {
-                return e.is_regular_file();
-            }) / 2;
-        
-        // Case 1
-        if (tc_cnt == 0) {
-            std::filesystem::remove_all(tc_dir);
-        // Case 2
-        } else if (tc_cnt > 0) {
-            int idx = 1;
-            for (auto &tc : std::filesystem::directory_iterator(tc_dir)) {
-                std::string tc_num = std::to_string(idx);
-                std::filesystem::rename(tc.path(), tc_dir + tc_num + tc.path().extension().string());
-                idx++;
+                         begin(tc_dir_iter), end(tc_dir_iter),
+                         [](const std::filesystem::directory_entry &e)
+                         {
+                             return e.is_regular_file();
+                         }) / 2;
+        std::cout << "tc_cnt: " << tc_cnt << "\n";
+
+        if (tc_cnt == 0) std::filesystem::remove_all(tc_dir);
+        else if (tc_cnt > 0) {
+            std::set<std::filesystem::path, Cmp> tc_set;
+            
+            for(auto &dir_entry: std::filesystem::directory_iterator(tc_dir)) {
+                tc_set.insert(dir_entry.path());
             }
-        } else {
-            std::cerr << "Error while counting the number of testcases\n";
+
+            int in_idx = 1, out_idx = 1;
+
+            for(auto &file: tc_set) {
+                std::cout << file.filename().string() << "\n";
+                if(file.extension() == ".in") {
+                    std::filesystem::rename(file, std::filesystem::path(tc_dir + std::to_string(in_idx) + ".in"));
+                    in_idx++;
+                } else if(file.extension() == ".out") {
+                    std::filesystem::rename(file, std::filesystem::path(tc_dir + std::to_string(out_idx) + ".out"));
+                    out_idx++;
+                }
+            }
         }
     }
     return res;
