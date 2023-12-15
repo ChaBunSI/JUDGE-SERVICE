@@ -1,5 +1,5 @@
-#ifndef ISOLATE_JUDGE_H
-#define ISOLATE_JUDGE_H
+#ifndef JUDGE_WORKER_H
+#define JUDGE_WORKER_H
 
 #include <iostream>
 #include <string>
@@ -179,33 +179,24 @@ bool remove_rawnline_compare(std::string out, std::string usr_out) {
 
 // 채점 결과를 출력하는 함수
 // 채점 중 가장 긴 실행 시간과 가장 큰 메모리 사용량을 출력해야 한다.
-void print_statistics(std::vector<judge_info>& judge_res, user_submission& cur_sub, judge_info& cur_judge_info) {
-    int len = judge_res.size();
-    int ac_cnt = 0, not_ac_cnt = 0;
-
-    for(auto& e: judge_res) {
-        if(e.res == AC) {
-            ac_cnt++;
-            cur_judge_info.time = std::max(cur_judge_info.time, e.time);
-            cur_judge_info.mem = std::max(cur_judge_info.mem, e.mem);
-        }
-        else not_ac_cnt++;
+void print_statistics(user_submission& cur_sub, judge_info& cur_judge_info, int tc_cnt, int ac_cnt) {
+    if (cur_judge_info.res == NJ)
+    {
+        if (ac_cnt == tc_cnt)
+            cur_judge_info.res = AC;
+        else
+            cur_judge_info.res = WA;
     }
 
     std::cout << "=======================================\n";
     std::cout << std::to_string(cur_sub.problem_id) + " Statistics: \n";
     std::cout << "AC: " << ac_cnt << "\n";
-    std::cout << "NOT AC: " << not_ac_cnt << "\n";
+    std::cout << "NOT AC: " << tc_cnt - ac_cnt << "\n";
     std::cout << "Judge result: " << judge_result_to_string(cur_judge_info.res) << "\n";
     std::cout << "Max Time: " << cur_judge_info.time << "ms\n";
     std::cout << "Max Memory: " << cur_judge_info.mem << "KB\n";
     std::cout << "Error Message: " << cur_judge_info.err_msg << "\n";
-    std::cout << "=======================================\n";
-
-    if(cur_judge_info.res == NJ) {
-        if(ac_cnt == judge_res.size()) cur_judge_info.res = AC;
-        else cur_judge_info.res = WA;
-    }
+    std::cout << "=======================================\n";    
 }
 
 #endif

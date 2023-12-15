@@ -11,6 +11,5 @@ build/
 # 중요 파일 및 테스트 파일 무시하기
 judge_aws.h
 ssh_pem/
-generate_testcase.cc
-simple_judge.cc
-tc_crud_test.cc
+simple_testcase.cc
+*.env
