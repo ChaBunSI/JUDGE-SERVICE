@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
                                 }
                             } else if(meta_data["exitcode"] == "0") {
                                 // 메타 데이터에서 실행 시간과 메모리 사용량 가져오기
-                                cur_judge_info.time = std::max(cur_tc_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
-                                cur_judge_info.mem = std::max(cur_tc_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"]))); 
+                                cur_judge_info.time = std::max(cur_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
+                                cur_judge_info.mem = std::max(cur_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"]))); 
                             }
                         }
                         else
