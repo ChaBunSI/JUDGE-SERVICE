@@ -15,12 +15,37 @@
 #include "judge_error.h"
 
 // 워커 (채점 프로세스)의 id 및 샌드박스 경로
-static int wid = -1;
+static int wid = 0;
 std::string isolate_dir;
+
+// worker 프로세스는 인자로 0~1 사이 숫자를 받는다.
+// 0: C/C++가 아닌, 다른 프로그래밍 언어를 채점
+// 1: C/C++를 채점
+// 채점하는 프로그래밍 언어에 따라, 폴링할 큐의 이름과 URL이 달라 초기 설정 필요하다.
+
+static Aws::String QUEUE_NAME;
+static Aws::String QUEUE_URL;
 
 int main(int argc, char *argv[])
 {
-    wid = 0;
+    if (argc != 2)
+    {
+        std::cerr << "Usage: ./worker [0~1]\n";
+        return -1;
+    } else {
+        wid = std::stoi(argv[1]);
+        if(wid == 0) {
+            QUEUE_NAME = NotCPP_QUEUE_NAME;
+            QUEUE_URL = NotCPP_QUEUE_URL;
+        } else if(wid == 1) {
+            QUEUE_NAME = CPP_QUEUE_NAME;
+            QUEUE_URL = CPP_QUEUE_URL;
+        } else {
+            std::cerr << "Usage: ./worker [0~1]\n";
+            return -1;
+        }
+    }
+
     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
     system(std::string("isolate --cg --box-id=" + std::to_string(wid) + " --init").c_str());
 
@@ -31,16 +56,13 @@ int main(int argc, char *argv[])
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
-        Aws::String queueName = JT_QUEUE_NAME;
-        Aws::String queueUrl = JT_QUEUE_URL;
-
         // 채점 큐에서 제출 정보 꺼내기
         Aws::Client::ClientConfiguration clientConfig;
         clientConfig.region = Aws::Region::AP_NORTHEAST_2;
         while (1)
         {
             Aws::String messageReceiptHandle;
-            received_sub = receiveMessageJudgeTask(cur_sub, clientConfig, messageReceiptHandle);
+            received_sub = receiveMessageTaskQueue(cur_sub, clientConfig, messageReceiptHandle, QUEUE_URL);
             if (!received_sub)
             {
                 std::cerr << "Failed to receive the message\n";
@@ -218,13 +240,12 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-
-                // TODO: 채점이 길어지면, 메세지가 삭제되지 않을 수 있음 -> 수정 필요
-                deleteMessageJudgeTask(messageReceiptHandle, clientConfig);
                 
                 if (process_res == NO_ERROR) {
                     print_statistics(cur_sub, cur_judge_info, tc_cnt, ac_cnt);
                     sendToQueue(cur_sub.submit_id, 0, final_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cur_judge_info.time, cur_judge_info.mem, cur_judge_info.res), clientConfig);
+                    // TODO: 채점이 길어지면, 메세지가 삭제되지 않을 수 있음 -> 수정 필요
+                    deleteMessageTaskQueue(messageReceiptHandle, clientConfig);
                 }
                     
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
