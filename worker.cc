@@ -9,7 +9,7 @@
 #include <chrono>
 
 // 채점 관련 라이브러리
-#include "isolate_judge.h"
+#include "judge_worker.h"
 #include "judge_task.h"
 #include "judge_notify.h"
 #include "judge_error.h"
@@ -18,20 +18,11 @@
 static int wid = -1;
 std::string isolate_dir;
 
-
-
 int main(int argc, char *argv[])
 {
     wid = 0;
     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
     system(std::string("isolate --cg --box-id=" + std::to_string(wid) + " --init").c_str());
-
-    // if(argc < 2) { std::cerr << "no worker ids are given\n"; return -1; }
-    // else if(argc == 2) {
-    //     wid = atoi(argv[1]);
-    //     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
-    //     system(std::string("isolate --box-id=" + std::to_string(wid) + " --init").c_str());
-    // }
 
     // 채점 큐에서 꺼낸 제출 정보
     user_submission cur_sub;
@@ -40,8 +31,8 @@ int main(int argc, char *argv[])
     Aws::SDKOptions options;
     Aws::InitAPI(options);
     {
-        Aws::String queueName = QUEUE_NAME;
-        Aws::String queueUrl = QUEUE_URL;
+        Aws::String queueName = JT_QUEUE_NAME;
+        Aws::String queueUrl = JT_QUEUE_URL;
 
         // 채점 큐에서 제출 정보 꺼내기
         Aws::Client::ClientConfiguration clientConfig;
@@ -53,7 +44,7 @@ int main(int argc, char *argv[])
             if (!received_sub)
             {
                 std::cerr << "Failed to receive the message\n";
-                sleep(5);
+                sleep(10);
             }
             else
             {
@@ -63,8 +54,8 @@ int main(int argc, char *argv[])
                 auto cur_config = lang_configs[cur_sub.lang];
                 judge_info cur_judge_info;
                 error_code process_res = NO_ERROR;
-                std::vector<judge_info> judge_res;
                 bool error_occured = false;
+                int tc_cnt = 0, ac_cnt = 0;
 
                 cur_judge_info.res = NJ;
 
@@ -101,15 +92,13 @@ int main(int argc, char *argv[])
                     auto cur_tc_dir_iter = std::filesystem::directory_iterator(cur_tc_dir);
 
                     // 테스트 케이스 개수 세기
-                    int cnt_tc = std::count_if(
+                    tc_cnt = std::count_if(
                                      begin(cur_tc_dir_iter), end(cur_tc_dir_iter),
                                      [](const std::filesystem::directory_entry &e)
                                      {
                                          return e.is_regular_file();
                                      }) /
                                  2;
-
-                    judge_res.resize(cnt_tc);
 
                     // 문제의 테스트 케이스들과 실행 코드를 샌드박스 내로 복사
                     std::string cp_tc = "cp Main" + cur_config.exec_ext + " " + cur_tc_dir + "/* " + isolate_dir;
@@ -121,13 +110,13 @@ int main(int argc, char *argv[])
                     }
 
                     // 샌드박스 내에서 테스트케이스 별로 제출된 코드 실행 후 결과 저장
-                    for (int i = 1; i <= cnt_tc && !error_occured; i++)
+                    for (int i = 1; i <= tc_cnt && !error_occured; i++)
                     {
                         std::string tc_num = std::to_string(i);
                         std::string cur_cmd = "isolate --cg --cg-mem=" + std::to_string(cur_config.get_max_mem(cur_sub.max_mem) * 1000) // MB -> KB로 변환
                                               + " --time=" + std::to_string(cur_config.get_max_time(cur_sub.max_time) / 1000.0)         // ms -> s로 변환
                                               + " --box-id=" + std::to_string(wid) + " --meta=" + submit_id + ".meta" + " --stdin=" + tc_num + ".in --stdout=usr_" + tc_num + ".out --run " + cur_config.run_cmd;
-                        judge_info &cur_tc_judge_info = judge_res[i - 1];
+                        judge_info cur_tc_judge_info;
 
                         int sandbox_exec_res = system(cur_cmd.c_str());
 
@@ -152,45 +141,51 @@ int main(int argc, char *argv[])
                                 meta_data[key] = value;
                             }
 
-                            // 메타 데이터에서 실행 시간과 메모리 사용량 가져오기
-                            cur_tc_judge_info.time = std::max(cur_tc_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
-                            cur_tc_judge_info.mem = std::max(cur_tc_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"])));
-
-                            if (meta_data.count("status") > 0)
+                            if (meta_data["exitcode"] != "0" && meta_data.count("status") > 0)
                             {
                                 std::string status = meta_data["status"];
                                 if (status == "TO")
                                 {
                                     cur_tc_judge_info.res = TLE;
+                                    cur_judge_info.res = TLE;
                                 }
                                 else if (status == "SG" || status == "RE")
                                 {
                                     cur_tc_judge_info.res = RE;
+                                    cur_judge_info.res = RE;
                                 }
                                 else if (status == "XX")
                                 {
                                     cur_tc_judge_info.res = SE;
+                                    cur_judge_info.res = SE;
                                 }
+                            } else if(meta_data["exitcode"] == "0") {
+                                // 메타 데이터에서 실행 시간과 메모리 사용량 가져오기
+                                cur_judge_info.time = std::max(cur_judge_info.time, static_cast<size_t>(1000 * std::stof(meta_data["time"])));
+                                cur_judge_info.mem = std::max(cur_judge_info.mem, static_cast<size_t>(std::stod(meta_data["cg-mem"]))); 
                             }
                         }
                         else
                             std::cout << "meta_out is not open\n";
-                        
+
                         if (sandbox_exec_res != 0)
                         {
                             std::cerr << "Error occured at sandbox!\n";
 
                             if(cur_tc_judge_info.res == TLE || cur_tc_judge_info.res == RE || cur_tc_judge_info.res == SE)
                                 cur_judge_info.res = cur_tc_judge_info.res;
-                                if(cur_judge_info.res == RE) {
-                                    cur_judge_info.err_msg = SIGNALS[std::stoi(meta_data["exitsig"])];
+                                if(cur_judge_info.res == RE && meta_data.count("exitsig") > 0) {
+                                    cur_judge_info.err_msg = std::string("exitcode: " + meta_data["exitcode"] + " ") + SIGNALS[std::stoi(meta_data["exitsig"])];
                                 }
                             else
                                 cur_tc_judge_info.res = SE;
                             error_occured = true;
 
                             // 실시간 채점 현황에 에러 났다고 전송
-                            sendToQueue(cur_sub.submit_id, i, cur_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cnt_tc, i, cur_tc_judge_info.res), clientConfig);
+                            sendToQueue(cur_sub.submit_id, i, cur_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, tc_cnt, i, cur_tc_judge_info.res), clientConfig);
+                            meta_out.close();
+                            usr_out.close();
+                            tc_out.close();
                             break;
                         }
                         
@@ -205,12 +200,14 @@ int main(int argc, char *argv[])
                                 cur_tc_judge_info.res = AC;
                         }
 
+                        if(cur_tc_judge_info.res == AC) ac_cnt++; 
+
                         if (std::getline(usr_out, usr_out_str))
                         {
                             cur_tc_judge_info.res = OLE;
                         }
 
-                        sendToQueue(cur_sub.submit_id, i, cur_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cnt_tc, i, cur_tc_judge_info.res), clientConfig);
+                        sendToQueue(cur_sub.submit_id, i, cur_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, tc_cnt, i, cur_tc_judge_info.res), clientConfig);
                         usr_out.close();
                         tc_out.close();
                         meta_out.close();
@@ -225,8 +222,11 @@ int main(int argc, char *argv[])
                 // TODO: 채점이 길어지면, 메세지가 삭제되지 않을 수 있음 -> 수정 필요
                 deleteMessageJudgeTask(messageReceiptHandle, clientConfig);
                 
-                if (process_res == NO_ERROR)
-                    print_statistics(judge_res, cur_sub, cur_judge_info);
+                if (process_res == NO_ERROR) {
+                    print_statistics(cur_sub, cur_judge_info, tc_cnt, ac_cnt);
+                    sendToQueue(cur_sub.submit_id, 0, final_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cur_judge_info.time, cur_judge_info.mem, cur_judge_info.res), clientConfig);
+                }
+                    
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
 
                 if (system(cleanup.c_str()) < 0) {

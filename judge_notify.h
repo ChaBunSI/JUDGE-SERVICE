@@ -2,7 +2,7 @@
 #define JUDGE_NOTIFY_H
 
 #include "judge_aws.h"
-#include "isolate_judge.h"
+#include "judge_worker.h"
 
 // 채점 결과 SNS Topic으로 발신용
 #include <aws/sns/SNSClient.h>
@@ -85,6 +85,24 @@ Aws::String cur_res_to_aws_string(int submit_id, int problem_id, int tc_cnt, int
     doc.AddMember("problem_id", problem_id, allocator);
     doc.AddMember("tc_total", tc_cnt, allocator);
     doc.AddMember("tc_cur", tc_cur, allocator);
+    doc.AddMember("result", res, allocator);
+
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    doc.Accept(writer);
+    return buffer.GetString();
+}
+
+Aws::String final_res_to_aws_string(int submit_id, int problem_id, size_t time_used, size_t mem_used, judge_result res)
+{
+    rapidjson::Document doc;
+    doc.SetObject();
+    rapidjson::Document::AllocatorType &allocator = doc.GetAllocator();
+
+    doc.AddMember("id", submit_id, allocator);
+    doc.AddMember("problem_id", problem_id, allocator);
+    doc.AddMember("time_used", time_used, allocator);
+    doc.AddMember("mem_used", mem_used, allocator);
     doc.AddMember("result", res, allocator);
 
     rapidjson::StringBuffer buffer;
