@@ -24,13 +24,6 @@ int main(int argc, char *argv[])
     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
     system(std::string("isolate --cg --box-id=" + std::to_string(wid) + " --init").c_str());
 
-    // if(argc < 2) { std::cerr << "no worker ids are given\n"; return -1; }
-    // else if(argc == 2) {
-    //     wid = atoi(argv[1]);
-    //     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
-    //     system(std::string("isolate --box-id=" + std::to_string(wid) + " --init").c_str());
-    // }
-
     // 채점 큐에서 꺼낸 제출 정보
     user_submission cur_sub;
     bool received_sub = false, deleted_msg = false;
@@ -51,7 +44,7 @@ int main(int argc, char *argv[])
             if (!received_sub)
             {
                 std::cerr << "Failed to receive the message\n";
-                sleep(5);
+                sleep(10);
             }
             else
             {
