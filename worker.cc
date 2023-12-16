@@ -33,11 +33,11 @@ int main(int argc, char *argv[])
         std::cerr << "Usage: ./worker [0~1]\n";
         return -1;
     } else {
-        wid = std::stoi(argv[1]);
-        if(wid == 0) {
+        int is_cpp = std::stoi(argv[1]);
+        if(is_cpp == 0) {
             QUEUE_NAME = NotCPP_QUEUE_NAME;
             QUEUE_URL = NotCPP_QUEUE_URL;
-        } else if(wid == 1) {
+        } else if(is_cpp == 1) {
             QUEUE_NAME = CPP_QUEUE_NAME;
             QUEUE_URL = CPP_QUEUE_URL;
         } else {

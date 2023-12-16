@@ -54,11 +54,13 @@ bool receiveMessageJudgeTask(Aws::String& messageBody, const Aws::Client::Client
         }
         else {
             std::cerr << "No message in JudgeTask queue\n";
+            return false;
         }
     }
     else {
         std::cerr << "Failed to receive message from JudgeTask queue: " << outcome.GetError().GetMessage() << "\n";
     }
+    return outcome.IsSuccess();
 }
 
 bool deleteMessageJudgeTask(Aws::String &messageReceiptHandle, const Aws::Client::ClientConfiguration &clientConfig)
@@ -72,13 +74,12 @@ bool deleteMessageJudgeTask(Aws::String &messageReceiptHandle, const Aws::Client
     if (outcome.IsSuccess())
     {
         std::cout << "Message deleted successfully.\n";
-        return true;
     }
     else
     {
         std::cout << "Error deleting message from queue: " << outcome.GetError().GetMessage() << "\n";
-        return false;
     }
+    return outcome.IsSuccess();
 }
 
 // 제출이 C/C++이면 JudgeCPP로 전달
@@ -87,26 +88,25 @@ bool deliverMessage(Aws::String &messageBody, const Aws::Client::ClientConfigura
 {
     const Aws::String queueName = is_cpp ? CPP_QUEUE_NAME : NotCPP_QUEUE_NAME;
     const Aws::String queueUrl = is_cpp ? CPP_QUEUE_URL : NotCPP_QUEUE_URL;
-    const Aws::String groupId = is_cpp ? "cpp_submission" : "not_cpp_submission";
+    const Aws::String groupId = is_cpp ? "cppSub" : "notcppSub";
 
     Aws::SQS::SQSClient mySQS(Aws::Auth::AWSCredentials(ACCESS_KEY, SECRET_KEY), clientConfig);
     Aws::SQS::Model::SendMessageRequest request;
     request.SetQueueUrl(queueUrl);
     request.SetMessageBody(messageBody);
-    request.SetMessageGroupId(groupId);
-    request.SetMessageDeduplicationId(generate_dup_id());
+    //request.SetMessageGroupId(groupId);
+    //request.SetMessageDeduplicationId(generate_dup_id());
 
     const Aws::SQS::Model::SendMessageOutcome outcome = mySQS.SendMessage(request);
     if (outcome.IsSuccess())
     {
         std::cout << "Message delivered successfully to queue: " << queueName << "\n";
-        return true;
     }
     else
     {
         std::cout << "Error delivering message to queue: " << queueName << " " << outcome.GetError().GetMessage() << "\n";
-        return false;
     }
+    return outcome.IsSuccess();
 }
 
 #endif

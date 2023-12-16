@@ -54,26 +54,33 @@ int main()
             Aws::String subReceiptHandle;
             Aws::String messageBody;
             bool is_cpp = false;
+            Aws::String target_queue;
             received_sub = receiveMessageJudgeTask(messageBody, clientConfig, subReceiptHandle, is_cpp);
             
             if(received_sub) {
                 if(is_cpp) {
                     std::cout << "Received C/C++ submission message successfully\n";
+                    target_queue = CPP_QUEUE_NAME;
                 } else {
                     std::cout << "Received Not C/C++ submission message successfully\n";
+                    target_queue = NotCPP_QUEUE_NAME;
                 }
                 is_delivered = deliverMessage(messageBody, clientConfig, is_cpp);
 
                 if(!is_delivered) {
-                    std::cerr << "Failed to deliver message to CPP or NotCPP queue\n";
+                    std::cerr << "Failed to deliver message to " << target_queue << "\n";
                 } else {
-                    std::cout << "Delivered message to CPP or NotCPP queue successfully\n";
+                    std::cout << "Delivered message to queue" << target_queue << " successfully\n";
                     deleteMessageJudgeTask(subReceiptHandle, clientConfig);
                 }
             }
+
+            if (!received_crud || !received_sub) {
+                sleep(10);
+            }
         }
     }
-    
+
     Aws::ShutdownAPI(options);
     std::cout << "Broker terminates.\n";
     return 0;
