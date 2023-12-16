@@ -28,22 +28,27 @@ static Aws::String QUEUE_URL;
 
 int main(int argc, char *argv[])
 {
-    if (argc != 2)
-    {
-        std::cerr << "Usage: ./worker [0~1]\n";
-        return -1;
-    } else {
+    if(argc == 2) {
         int is_cpp = std::stoi(argv[1]);
         if(is_cpp == 0) {
+            std::cout << "========================================\n";
+            std::cout << "Worker Init: Supports languages other than C/C++\n";
+            std::cout << "========================================\n";
             QUEUE_NAME = NotCPP_QUEUE_NAME;
             QUEUE_URL = NotCPP_QUEUE_URL;
         } else if(is_cpp == 1) {
+            std::cout << "========================================\n";
+            std::cout << "Worker Init: Supports C/C++\n";
+            std::cout << "========================================\n";
             QUEUE_NAME = CPP_QUEUE_NAME;
             QUEUE_URL = CPP_QUEUE_URL;
         } else {
             std::cerr << "Usage: ./worker [0~1]\n";
             return -1;
         }
+    } else {
+        std::cerr << "Usage: ./worker [0~1]\n";
+        return -1;
     }
 
     isolate_dir = "/var/local/lib/isolate/" + std::to_string(wid) + "/box";
