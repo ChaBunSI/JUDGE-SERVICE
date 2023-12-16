@@ -72,10 +72,10 @@ bool receiveMessageTaskQueue(user_submission &sub, const Aws::Client::ClientConf
     return outcome.IsSuccess();
 }
 
-bool deleteMessageTaskQueue(Aws::String &messageReceiptHandle, const Aws::Client::ClientConfiguration &clientConfig) {
+bool deleteMessageTaskQueue(Aws::String &messageReceiptHandle, const Aws::Client::ClientConfiguration &clientConfig, const Aws::String &qurl) {
     Aws::SQS::SQSClient mySQS(Aws::Auth::AWSCredentials(ACCESS_KEY, SECRET_KEY), clientConfig);
     Aws::SQS::Model::DeleteMessageRequest request;
-    request.SetQueueUrl(JT_QUEUE_URL);
+    request.SetQueueUrl(qurl);
     request.SetReceiptHandle(messageReceiptHandle);
 
     const Aws::SQS::Model::DeleteMessageOutcome outcome = mySQS.DeleteMessage(request);

@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
                     print_statistics(cur_sub, cur_judge_info, tc_cnt, ac_cnt);
                     sendToQueue(cur_sub.submit_id, 0, final_res_to_aws_string(cur_sub.submit_id, cur_sub.problem_id, cur_judge_info.time, cur_judge_info.mem, cur_judge_info.res), clientConfig);
                     // TODO: 채점이 길어지면, 메세지가 삭제되지 않을 수 있음 -> 수정 필요
-                    deleteMessageTaskQueue(messageReceiptHandle, clientConfig);
+                    deleteMessageTaskQueue(messageReceiptHandle, clientConfig, QUEUE_URL);
                 }
                     
                 std::string cleanup = "rm -rf " + isolate_dir + "/*";
