@@ -146,14 +146,8 @@ bool process_crud_add(crud_request &c_req)
 {
     std::string tc_dir = "../testcases/" + std::to_string(c_req.problem_id) + "/";
     std::filesystem::path tc_path(tc_dir);
-    auto tc_dir_iter = std::filesystem::directory_iterator(tc_dir);
-    int tc_cnt = std::count_if(
-                     begin(tc_dir_iter), end(tc_dir_iter),
-                     [](const std::filesystem::directory_entry &e)
-                     {
-                         return e.is_regular_file();
-                     }) /
-                 2;
+    std::filesystem::directory_iterator tc_dir_iter;
+    int tc_cnt = 0; 
     std::cout << "ADD Request!\n";
 
     // 새로운 문제인 경우, 해당 디렉토리 생성
@@ -166,6 +160,17 @@ bool process_crud_add(crud_request &c_req)
             std::cerr << "Failed to create a new directory for the problem " << c_req.problem_id << "\n";
             return false;
         }
+        tc_dir_iter = std::filesystem::directory_iterator(tc_dir);
+    } else {
+        tc_dir_iter = std::filesystem::directory_iterator(tc_dir);
+        tc_cnt = std::count_if(
+            begin(tc_dir_iter), end(tc_dir_iter),
+            [](const std::filesystem::directory_entry &e)
+            {
+                return e.is_regular_file();
+            }) /
+            2;
+            std::cout << "tc_cnt: " << tc_cnt << "\n";
     }
 
     // 존재하지 않는 id: 새로운 테스트케이스 추가
@@ -173,7 +178,7 @@ bool process_crud_add(crud_request &c_req)
     // 존재하는 id: overwrite
     for (auto &tc : c_req.testcases)
     {
-        std::string tc_num = tc.id > tc_cnt ? std::to_string(tc_cnt + 1) : std::to_string(tc.id); 
+        std::string tc_num = tc.id > tc_cnt ? std::to_string(++tc_cnt) : std::to_string(tc.id); 
         std::ofstream tc_in = std::ofstream(tc_dir + tc_num + ".in", std::ios::out | std::ios::trunc);
         std::ofstream tc_out = std::ofstream(tc_dir + tc_num + ".out", std::ios::out | std::ios::trunc);
 
