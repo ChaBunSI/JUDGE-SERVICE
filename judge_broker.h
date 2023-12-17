@@ -94,8 +94,8 @@ bool deliverMessage(Aws::String &messageBody, const Aws::Client::ClientConfigura
     Aws::SQS::Model::SendMessageRequest request;
     request.SetQueueUrl(queueUrl);
     request.SetMessageBody(messageBody);
-    //request.SetMessageGroupId(groupId);
-    //request.SetMessageDeduplicationId(generate_dup_id());
+    request.SetMessageGroupId(groupId);
+    request.SetMessageDeduplicationId(generate_dup_id());
 
     const Aws::SQS::Model::SendMessageOutcome outcome = mySQS.SendMessage(request);
     if (outcome.IsSuccess())
