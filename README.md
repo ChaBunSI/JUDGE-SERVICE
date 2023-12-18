@@ -11,8 +11,12 @@
 * 채점을 하며 매 테스트 케이스의 채점 결과를 보내는 것 완료 (실시간 채점현황 용)
 * 문제 관리 서비스에서 CRUD 요청이 오면 채점 서버에도 적용되도록 동기화 완료
 
+## 구조도
+![채점 서비스 구조](images/judge_process.png)
 
 ## 채점 과정  
+![채점 과정](images/judge_process.png)
+
 1) 채점 큐 (SQS)에서 채점 정보를 빼냅니다.
 2) 빼낸 정보를 바탕으로 채점을 진행합니다.  
    주어진 코드를 언어에 맞게 컴파일 후, 테스트케이스의 입력을 코드에 넣어 샌드박스 환경에서 실행합니다.  
@@ -114,9 +118,6 @@ enum language_code {
   - 이미 있다면, 삭제
   - 삭제 시 테스트케이스의 id를 재정렬
 
-## 구조도 (현재 그림 수정 필요) 
-추후 그림은 언제든지 수정될 수 있습니다.  
-
 ## Dependency  
 * [isolate](https://www.github.com/ioi/isolate)
 * [AWS SQS](https://aws.amazon.com/ko/sqs/)
@@ -126,17 +127,41 @@ enum language_code {
   sudo apt-get install rapidjson-dev
   ```
 
-## TODO
-**확장성** 측면에서 여러 고려를 해야 한다.
-1) 컨테이너를 사용하여 채점 서버를 여러 개 띄울 수 있도록 한다.
-2) 현재 채점 서버 구조를 broker와 worker로 나누어,  
-   broker는 채점 큐에서 채점 정보를 받아 worker에게 전달하는 역할을 하도록 한다.
-3) 새로운 프로그래밍 언어를 추가하기 쉬운 구조인가?
-4) 채점 성능도 고려 필요
-   - 언어 별 / 실행 시간 별 채점 큐?
-    
+## 채점 서버 구축하기
+### 호스트 머신의 설정 확인하기
+위 채점 서비스는 [isolate](https://www.github.com/ioi/isolate) 를 사용하여 샌드박스 환경에서 채점을 진행합니다.  
+따라서 워커가 올라갈 호스트 머신은 isolate와 호환이 되는 환경이어야 합니다.  
 
-
-## 조금 더 자세한 설명
- 
-[Notion](https://dripbox.notion.site/88eaba989d5e4a36a45771e835cb836f?pvs=4)
+isolate에서 현재 cgroup v2를 지원하고 있지 않기에,  
+cgroup v1을 사용하는 환경에서만 구축이 가능합니다.  
+ex) Ubuntu 20.04 LTS   
+```shell
+stat -fc %T /sys/fs/cgroup/
+```
+다음과 같은 명령어를 실행하여 현재 환경의 cgroup 버전을 확인할 수 있습니다.  
+* cgroup v1: tmpfs
+* cgroup v2: cgroup2fs
+### 커널 및 시스템 설정
+[Determinism 관련 IOI Checklist](https://ioi.github.io/checklist/)  
+코드 실행 시 최대한 일관된 결과를 제공해주기 위해   
+커널 및 시스템의 설정을 건드려야 합니다.  
+swap, ASLR 등 코드 실행에 영향을 미칠 수 있는 요소들을 배제해야 합니다.  
+root에서 ```kernel.sh``` 을 실행시켜 설정할 수 있습니다.
+### 테스트 케이스 준비
+문제 관리 서비스에서 갖고 있는 테스트 케이스 파일들을  
+채점 서비스에서도 갖고 있어야 합니다.  
+브로커와 워커는 바인드 마운트로 testcases 폴더를 공유하고 있습니다.  
+따라서 컨테이너 실행 전에 미리 testcases 폴더를 준비하여야 합니다.
+### 컨테이너 준비
+* 브로커
+  ```shell
+  docker run -it -d --privileged --entrypoint ./JUDGE-SERVICE -v ./testcases:/home/JUDGE-SERVICE/testcases pridom1128/broker:1.5
+  ```
+* 워커 (C/C++용)
+  ```shell
+  docker run -it -d --privileged --entrypoint ./JUDGE-SERVICE -v ./testcases:/home/JUDGE-SERVICE/testcases pridom1128/worker:1.5 1
+  ```
+* 워커 (C/C++ 이외)
+  ```shell
+  docker run -it --privileged --entrypoint ./JUDGE-SERVICE -v ./testcases:/home/JUDGE-SERVICE/testcases pridom1128/worker:1.5 0
+  ```
