@@ -141,12 +141,15 @@ stat -fc %T /sys/fs/cgroup/
 다음과 같은 명령어를 실행하여 현재 환경의 cgroup 버전을 확인할 수 있습니다.  
 * cgroup v1: tmpfs
 * cgroup v2: cgroup2fs
+
+명령어 실행 시 성공적으로 tmpfs가 나왔다면  
+아래의 과정들을 따라 서버 구축을 진행해주시면 됩니다.
 ### 커널 및 시스템 설정
 [Determinism 관련 IOI Checklist](https://ioi.github.io/checklist/)  
 코드 실행 시 최대한 일관된 결과를 제공해주기 위해   
 커널 및 시스템의 설정을 건드려야 합니다.  
 swap, ASLR 등 코드 실행에 영향을 미칠 수 있는 요소들을 배제해야 합니다.  
-root에서 ```kernel.sh``` 을 실행시켜 설정할 수 있습니다.
+root에서 ```sh kernel_tuning.sh``` 을 실행시켜 설정할 수 있습니다.
 ### 테스트 케이스 준비
 문제 관리 서비스에서 갖고 있는 테스트 케이스 파일들을  
 채점 서비스에서도 갖고 있어야 합니다.  
