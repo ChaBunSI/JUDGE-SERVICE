@@ -76,7 +76,7 @@ int main()
             }
 
             if (!received_crud || !received_sub) {
-                sleep(1);
+                sleep(3);
             }
         }
     }
