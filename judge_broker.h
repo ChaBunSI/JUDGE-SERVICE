@@ -53,12 +53,12 @@ bool receiveMessageJudgeTask(Aws::String& messageBody, const Aws::Client::Client
             is_cpp = lang_code == C || lang_code == CPP ? true : false;
         }
         else {
-            std::cerr << "No message in JudgeTask queue\n";
+            //std::cerr << "No message in JudgeTask queue\n";
             return false;
         }
     }
     else {
-        std::cerr << "Failed to receive message from JudgeTask queue: " << outcome.GetError().GetMessage() << "\n";
+        //std::cerr << "Failed to receive message from JudgeTask queue: " << outcome.GetError().GetMessage() << "\n";
     }
     return outcome.IsSuccess();
 }

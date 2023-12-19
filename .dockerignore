@@ -1,5 +1,8 @@
 .git
 .vscode
 build
+images
 ssh_pem
-Main.cc
+generate_testcase.cc
+judge_aws.env
+kernel_tuning.sh

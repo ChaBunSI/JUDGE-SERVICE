@@ -63,11 +63,11 @@ bool receiveMessageTaskQueue(user_submission &sub, const Aws::Client::ClientConf
             sub = unmarshal(message);
             messageReceiptHandle = message.GetReceiptHandle();
         } else {
-            std::cerr << "No messages received from queue\n";
+            //std::cerr << "No messages received from queue\n";
             return false;
         }
     } else {
-        std::cerr << "Error receiving message from queue: " << outcome.GetError().GetMessage() << "\n";
+        //std::cerr << "Error receiving message from queue: " << outcome.GetError().GetMessage() << "\n";
     }
     return outcome.IsSuccess();
 }
