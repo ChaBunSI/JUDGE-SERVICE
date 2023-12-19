@@ -5,9 +5,9 @@
 # some kernel and system settings should be tuned.
 # Please run this script on superuser to disable swap.
 
-RES = $(stat -fc %T /sys/fs/cgroup)
+RES=$(stat -fc %T /sys/fs/cgroup)
 
-if [ "$RES" != "tmpfs" ]; then
+if [ ${RES} != "tmpfs" ]; then
     echo "cgroup v2 -- isolate is not supported in this environment!\n"
     echo "add kernel parameters below:\n"
     echo "systemd.unified_cgroup_hierarchy=false systemd.legacy_systemd_cgroup_controller=false\n"
