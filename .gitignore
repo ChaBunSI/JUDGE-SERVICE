@@ -1,7 +1,6 @@
 # 실행 파일 무시하기
-*
-!*.*
-!*/
+generate_testcase
+
 
 # 테케 및 설정 무시하기
 testcases/
