@@ -12,7 +12,7 @@
 * 문제 관리 서비스에서 CRUD 요청이 오면 채점 서버에도 적용되도록 동기화 완료
 
 ## 구조도
-![채점 서비스 구조](images/judge_process.png)
+![채점 서비스 구조](images/architecture.png)
 
 ## 채점 과정  
 ![채점 과정](images/judge_process.png)
